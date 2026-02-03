@@ -7,31 +7,6 @@
 > 
 > 值得注意的是后端部分接口可能看起来有部分重复，这是因为兼容了直接使用原本Thymleaf中的实现，从而可以对比两种实现
 
-## 一、配套服务
- 
-1. **前后端分离网址**：[http://www.xuyifei.site](http://www.xuyifei.site)
-2. **技术派管理端源码**：[paicoding-admin](https://github.com/itwanger/paicoding-admin)
-3. **Vue3前端重构的前端源码**：现已合并到管理端项目中，但仍然是前后端分离模式。
-
-## 二、项目介绍
-
-### 项目演示
-
-#### 前台社区系统
-
-- 项目仓库（GitHub）：[https://github.com/XuYi-fei/Coder-s-platform](https://github.com/XuYi-fei/Coder-s-platform)
-- 项目仓库（码云）：[https://gitee.com/XuYi-fei/Coder-s-platform](https://gitee.com/XuYi-fei/Coder-s-platform)
-- 前后端分离版本项目演示地址：[http://www.xuyifei.site](http://www.xuyifei.site)
-
-![](https://cdn.tobebetterjavaer.com/images/20230602/d7d341c557e7470d9fb41245e5bb4209.png)
-
-#### 后台社区系统
-
-- 项目仓库（GitHub）：[https://github.com/itwanger/paicoding-admin](https://github.com/itwanger/paicoding-admin)
-- 项目仓库（码云）：[https://gitee.com/itwanger/paicoding-admin](https://gitee.com/itwanger/paicoding-admin)
-- 项目演示地址：[https://paicoding.com/admin-view](https://paicoding.com/admin/)
-
-![](https://cdn.tobebetterjavaer.com/images/20230602/83139e13a4784c0fbf0adedd8e287c5b.png)
 
 
 ### 组织结构
