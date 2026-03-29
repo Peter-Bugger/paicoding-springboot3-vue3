@@ -149,7 +149,6 @@
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-3-starter</artifactId>
             <version>${druid-spring-boot-starter.version}</version>
-            <scope>provided</scope>
         </dependency>
 
 <!--        <dependency>-->
@@ -255,6 +254,19 @@
 
     <build>
         <plugins>
+            <!-- 启用 SpringBoot 打包（继承父类配置，无红标！） -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- 开启当前模块打包（覆盖父类的 skip=true） -->
+                    <skip>false</skip>
+                    <!-- 你的启动类全路径（必须正确！） -->
+                    <mainClass>com.github.paicoding.forum.web.QuickForumApplication</mainClass>
+                </configuration>
+            </plugin>
+
+            <!-- 2. 你原来的 groovy 插件 -->
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
