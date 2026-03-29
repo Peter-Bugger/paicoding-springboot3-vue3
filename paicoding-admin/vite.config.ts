@@ -16,6 +16,7 @@ export default defineConfig((mode: ConfigEnv): UserConfig => {
 	const env = loadEnv(mode.mode, process.cwd());
 	const viteEnv = wrapperEnv(env);
 
+	// @ts-ignore
 	return {
 		// base: "/",
 		// alias config
@@ -43,12 +44,12 @@ export default defineConfig((mode: ConfigEnv): UserConfig => {
 			// 代理跨域（mock 不需要配置，这里只是个示例）
 			proxy: {
 				"/admin": {
-					target: "http://127.0.0.1:8080/",
+					target: "http://127.0.0.1:8081/",
 					changeOrigin: true,
 					rewrite: path => path.replace(/^\/api/, "")
 				},
 				"/api/admin": {
-					target: "http://127.0.0.1:8080/",
+					target: "http://127.0.0.1:8081/",
 					changeOrigin: true
 				}
 			}

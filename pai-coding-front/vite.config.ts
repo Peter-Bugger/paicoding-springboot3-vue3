@@ -20,6 +20,15 @@ export default defineConfig({
   optimizeDeps: {
     include: ['md-editor-v3']
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8081',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
   // server: {
   //   proxy: {
   //     '/': {
