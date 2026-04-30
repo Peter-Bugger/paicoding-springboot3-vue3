@@ -1,4 +1,5 @@
 import './assets/main.css'
+import '@fontsource/noto-serif-sc' // 思源宋体 - 首页标题字体
 
 import { createApp, defineComponent, h } from 'vue'
 import { createPinia } from 'pinia'

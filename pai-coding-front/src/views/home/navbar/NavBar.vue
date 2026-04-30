@@ -1,70 +1,53 @@
 <template>
-  <div class="mb-1">
-    <div v-if="!ifSearchActive" class="card-body d-flex category-wrap type-box">
-      <div  class="d-flex align-content-start w-full category-list">
-        <div v-for="subCategory in categories" :key="subCategory.categoryId">
-          <a :href="'?category=' + subCategory.category" class="category--item pt-2 pr-5" :class="{'category--active': subCategory.category === activeCategory}">
-            {{subCategory.category}}
-          </a>
-        </div>
+  <div class="nav-section">
+    <div v-if="!ifSearchActive" class="nav-bar">
+      <div class="nav-categories">
+        <a
+          v-for="subCategory in categories"
+          :key="subCategory.categoryId"
+          :href="'?category=' + subCategory.category"
+          class="nav-pill"
+          :class="{ 'nav-pill--active': subCategory.category === activeCategory }"
+        >
+          {{subCategory.category}}
+        </a>
       </div>
-      <button @click="ifSearchActive = true" class="right-8 px-3 ml-4 category-search-btn">
-        <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="search"
-             class="svg-inline--fa fa-search fa-w-16 "
-             role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-          <path fill="currentColor" d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path>
-        </svg>
+      <button @click="ifSearchActive = true" class="nav-search-btn" aria-label="搜索">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
     </div>
-    <div v-if="ifSearchActive" class="center-content card-body d-flex category-wrap type-box">
-      <div  class="d-flex justify-center">
-        <div class="relative lg:max-w-lg w-full">
-          <el-select
-            v-model="searchInput"
-            filterable
-            remote
-            reserve-keyword
-            placeholder="搜你想搜..."
-            :loading="loading"
-            :remote-method="fetchSearchData"
-            :no-data-text="'嗯... 没有找到你想要的内容，换个关键字试试吧:'"
-            fit-input-width
+    <div v-if="ifSearchActive" class="nav-search-wrap">
+      <div class="nav-search-inner">
+        <el-select
+          v-model="searchInput"
+          filterable
+          remote
+          reserve-keyword
+          placeholder="搜你想搜..."
+          :loading="loading"
+          :remote-method="fetchSearchData"
+          :no-data-text="'嗯... 没有找到你想要的内容，换个关键字试试吧:'"
+          fit-input-width
+          class="nav-search-select"
+        >
+          <el-option
+            v-for="item in options"
+            :key="item.id"
+            :value="item.title"
           >
-            <el-option
-              v-for="item in options"
-              :key="item.id"
-              :value="item.title"
-            >
-              <template #default>
-                <div class="d-flex justify-between">
-                  <span v-html="highlightKeyword(item.title)"></span>
-                </div>
-              </template>
-            </el-option>
-          </el-select>
-
-          <div class="hidden search-result-block">
-            <div class="ais-Hits Hits search-has-result">
-              <ul class="ais-Hits-list">
-                <li class="ais-Hits-item">
-                  <a class="my-0 border-b py-1 px-2 border-gray-400 hover:bg-gray-400 block"
-                     href="/article/detail/">
-                      <span class="text-white text-sm hover:text-primary-200">
-                        <span class="title pre">编程汇</span>
-                        <mark class="text-primary-300 bg-transparent">关键字</mark>
-                        <span class="title last">就是牛</span>
-                      </span>
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <el-button class="center-content" @click="ifSearchActive = false"><el-icon size="25"><Close /></el-icon></el-button>
+            <template #default>
+              <div class="flex justify-between">
+                <span v-html="highlightKeyword(item.title)"></span>
+              </div>
+            </template>
+          </el-option>
+        </el-select>
       </div>
+      <button class="nav-search-close" @click="ifSearchActive = false" aria-label="关闭搜索">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">
@@ -80,7 +63,7 @@ const route = useRoute()
 
 const ifSearchActive = ref(false)
 
-const props = defineProps<{
+defineProps<{
   categories: ArticleCategoryType[]
 }>()
 
@@ -131,16 +114,147 @@ const highlightKeyword = (text: string) => {
 </script>
 
 <style scoped>
-
-.el-select{
-  width: 300px
+/* ── Section Container ── */
+.nav-section {
+  margin-bottom: 2rem;
+  animation: navSlideIn 0.5s ease-out both;
 }
 
-/* 当屏幕宽度大于等于 768px 时，应用此样式 */
-@media (min-width: 768px) {
-  .el-select{
-    width: 500px
-  }
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
+/* ── Category Pills ── */
+.nav-categories {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #78746e;
+  background: transparent;
+  border-radius: 999px;
+  text-decoration: none;
+  line-height: 1.4;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  border: none;
+  position: relative;
+}
+
+.nav-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--pai-brand-7-light);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.nav-pill:hover {
+  color: var(--pai-brand-1-normal);
+}
+
+.nav-pill:hover::after {
+  opacity: 1;
+}
+
+.nav-pill--active {
+  color: #fff;
+  background: var(--pai-brand-1-normal);
+  box-shadow: 0 2px 10px rgba(255, 105, 0, 0.25);
+}
+
+.nav-pill--active::after {
+  display: none;
+}
+
+.nav-pill--active:hover {
+  color: #fff;
+  background: var(--pai-brand-2-hover);
+  box-shadow: 0 3px 14px rgba(255, 105, 0, 0.35);
+}
+
+/* ── Search Button ── */
+.nav-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #e5ddd5;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  flex-shrink: 0;
+}
+
+.nav-search-btn:hover {
+  border-color: var(--pai-brand-1-normal);
+  color: var(--pai-brand-1-normal);
+  background: var(--pai-brand-7-light);
+  transform: scale(1.05);
+}
+
+/* ── Search Panel ── */
+.nav-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: searchFadeIn 0.3s ease-out;
+}
+
+.nav-search-inner {
+  flex: 1;
+  max-width: 28rem;
+}
+
+.nav-search-select {
+  width: 100%;
+}
+
+.nav-search-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: #f0ebe5;
+  color: #887;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.nav-search-close:hover {
+  background: #e5ddd5;
+  color: #555;
+  transform: rotate(90deg);
+}
+
+/* ── Animations ── */
+@keyframes navSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes searchFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
 </style>
