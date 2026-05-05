@@ -1,37 +1,43 @@
 <template>
   <HeaderBar />
-  <div class="flex mt-3">
-    <el-text style="margin-left: 10px; height: 40px; width: 60px; font-size: medium"> 标题</el-text>
-    <el-form
-      ref="titleFormRef"
-      style="width: 100%; height: 60px"
-      :model="titleForm"
-      :rules="titleFormRules"
-      label-width="auto"
-      :size="titleFormSize"
-      status-icon
-    >
-
-      <el-form-item size="large" prop="title">
-        <template #default>
-          <el-input  v-model="titleForm.title" placeholder="请输入标题"></el-input>
-        </template>
-      </el-form-item>
-    </el-form>
-    <el-button @click="submitDialogVisible = true" :disabled="titleForm.title.length < 6 || titleForm.title.length > 40" type="success" style="height: 40px; width: 100px"> 保存</el-button>
-  </div>
-
-  <!--  正文内容-->
+  <div class="edit-wrap">
+    <div class="flex edit-header-bar">
+      <el-text class="edit-header-label">标题</el-text>
+      <el-form
+        ref="titleFormRef"
+        class="edit-header-form"
+        :model="titleForm"
+        :rules="titleFormRules"
+        label-width="auto"
+        :size="titleFormSize"
+        status-icon
+      >
+        <el-form-item size="large" prop="title">
+          <template #default>
+            <el-input v-model="titleForm.title" placeholder="请输入标题"></el-input>
+          </template>
+        </el-form-item>
+      </el-form>
+      <el-button
+        @click="submitDialogVisible = true"
+        :disabled="titleForm.title.length < 6 || titleForm.title.length > 40"
+        type="primary"
+        class="edit-header-btn"
+      >
+        保存
+      </el-button>
+    </div>
 
     <MdEditor
-      style="height: calc(100vh - 72px - var(--footer-height) - var(--header-height))"
+      class="edit-editor"
       :editor-id="'id'"
       v-model="text"
       @onUploadImg="onUploadImg"
       :toolbars-exclude="['prettier', 'github']"
     ></MdEditor>
 
-    <Footer :global="global"></Footer>
+    <Footer :global="global" />
+  </div>
 
   <el-dialog v-model="submitDialogVisible" style="min-width: 300px">
 <!--    标题-->
@@ -42,7 +48,6 @@
     <template #default>
         <el-form
           ref="articleInfoFormRef"
-          style="width: 100%; height: 450px"
           :model="articleInfoForm"
           :rules="articleInfoFormRules"
           label-width="auto"
@@ -57,6 +62,7 @@
                 clearable
                 placeholder="请选择文章的分类"
                 :loading="categoryLoading"
+                class="w-full"
               >
 
                 <el-option v-for="(item, id) in categoryOptions" :key="id" :label="item.category" :value="item.categoryId"></el-option>
@@ -162,8 +168,8 @@
         </el-form>
       <el-divider></el-divider>
       <div class="flex justify-center">
-        <el-button :loading="saveBtnLoading" type="success" @click="postArticle('post')" style="width: 80px">发布</el-button>
-        <el-button type="info" @click="postArticle('save')">存草稿</el-button>
+        <el-button :loading="saveBtnLoading" type="primary" @click="postArticle('post')">发布</el-button>
+        <el-button @click="postArticle('save')">存草稿</el-button>
       </div>
 
     </template>
@@ -478,13 +484,85 @@ const getCategories = (visible: boolean) => {
 
 <style scoped>
 
-#edit-body{
+#edit-body {
   max-height: calc(100vh - 84px - var(--header-height));
 }
 
-
 .el-upload--picture-card {
   display: none;
+}
+
+/* ── 页面包裹层：避开固定 Header ── */
+.edit-wrap {
+  padding-top: var(--header-height, 60px);
+}
+
+/* ── 标题栏 ── */
+.edit-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--pai-bg-white-fff, #ffffff);
+  border-bottom: 1px solid var(--pai-bg-light-2, #eef1f7);
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.edit-header-label {
+  width: 50px;
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--pai-color-3-black, #1e2029);
+  line-height: 1;
+}
+
+.edit-header-form {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-header-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.edit-header-form :deep(.el-input__wrapper) {
+  box-shadow: none;
+}
+
+.edit-header-btn {
+  flex-shrink: 0;
+}
+
+/* ── 编辑器 ── */
+.edit-editor {
+  height: calc(100vh - 72px - var(--footer-height) - var(--header-height));
+}
+
+.el-upload__tip {
+  color: var(--pai-color-999-gray, #8c8f9c);
+  font-size: 12px;
+}
+
+/* ── 弹窗暗色模式 ── */
+.dark .el-dialog {
+  --el-dialog-bg-color: var(--pai-bg-dark-1, #0f111a);
+}
+
+.dark .el-dialog .font-medium.text-xl {
+  color: var(--pai-color-3-black, #e1e3eb);
+}
+
+.dark .el-dialog .el-form-item__label {
+  color: var(--pai-color-4-gray, #8c8f9c);
+}
+
+.dark .el-dialog .el-divider {
+  --el-border-color: var(--pai-border-color-1, #2a2d3a);
+}
+
+.dark .edit-header-label {
+  color: var(--pai-color-3-black, #e1e3eb);
 }
 
 </style>

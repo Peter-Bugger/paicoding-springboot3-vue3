@@ -1,0 +1,13 @@
+project:
+  name: tech-pai-front
+  language: TypeScript
+  framework: Vue
+  description: ""
+commands:
+  test: ""
+  lint: npm run lint
+  build: npm run build
+rules:
+  - use TypeScript strict mode
+boundaries:
+  never_touch: null

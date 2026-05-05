@@ -51,10 +51,8 @@
 </template>
 
 <script setup lang="ts">
-
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { Close } from '@element-plus/icons-vue'
 import { doGet } from '@/http/BackendRequests'
 import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
 import type { ArticleCategoryType } from '@/http/ResponseTypes/CategoryType/ArticleCategoryType'
@@ -102,10 +100,6 @@ const fetchSearchData = (query : string) => {
     })
 }
 
-/**
- * 高亮搜索得到的文章的结果
- * @param text
- */
 const highlightKeyword = (text: string) => {
   if (!keyWord.value) return text
   const regex = new RegExp(`(${keyWord.value})`, 'gi')
@@ -141,7 +135,7 @@ const highlightKeyword = (text: string) => {
   padding: 0.45rem 1.1rem;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #78746e;
+  color: var(--pai-color-3-gray, #6b7084);
   background: transparent;
   border-radius: 999px;
   text-decoration: none;
@@ -173,7 +167,7 @@ const highlightKeyword = (text: string) => {
 .nav-pill--active {
   color: #fff;
   background: var(--pai-brand-1-normal);
-  box-shadow: 0 2px 10px rgba(255, 105, 0, 0.25);
+  box-shadow: 0 2px 10px rgba(45, 124, 246, 0.3);
 }
 
 .nav-pill--active::after {
@@ -183,7 +177,7 @@ const highlightKeyword = (text: string) => {
 .nav-pill--active:hover {
   color: #fff;
   background: var(--pai-brand-2-hover);
-  box-shadow: 0 3px 14px rgba(255, 105, 0, 0.35);
+  box-shadow: 0 3px 14px rgba(45, 124, 246, 0.4);
 }
 
 /* ── Search Button ── */
@@ -194,9 +188,9 @@ const highlightKeyword = (text: string) => {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1.5px solid #e5ddd5;
+  border: 1.5px solid var(--pai-border-color-1, #d6dae6);
   background: transparent;
-  color: #999;
+  color: var(--pai-color-999-gray, #8c8f9c);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
   flex-shrink: 0;
@@ -234,16 +228,16 @@ const highlightKeyword = (text: string) => {
   height: 38px;
   border-radius: 50%;
   border: none;
-  background: #f0ebe5;
-  color: #887;
+  background: var(--pai-bg-light-2, #eef1f7);
+  color: var(--pai-color-3-gray, #6b7084);
   cursor: pointer;
   transition: all 0.25s ease;
   flex-shrink: 0;
 }
 
 .nav-search-close:hover {
-  background: #e5ddd5;
-  color: #555;
+  background: var(--pai-border-color-1, #d6dae6);
+  color: var(--pai-color-4-gray, #484d5e);
   transform: rotate(90deg);
 }
 

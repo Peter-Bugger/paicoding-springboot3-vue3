@@ -1,19 +1,14 @@
 <template>
   <HeaderBar></HeaderBar>
 
-  <!-- 正文内容 -->
-  <div class="user-div">
+  <div class="user-page">
     <UserHomeInfo :vo="userInfo"></UserHomeInfo>
     <div class="user-wrap">
       <div class="user-content">
-        <!-- 主要内容 -->
         <div class="user-body">
-          <!-- 选择标签列表 -->
           <UserHomeNavBar></UserHomeNavBar>
-
         </div>
-        <!-- 右侧内容 -->
-        <div class="user-left hidden-when-screen-small">
+        <div class="user-sidebar hidden-when-screen-small">
           <UserAchievement :user="userInfo"></UserAchievement>
           <UserHistory :user="userInfo"></UserHistory>
         </div>
@@ -21,11 +16,9 @@
     </div>
   </div>
   <Footer></Footer>
-
 </template>
 
 <script setup lang="ts">
-
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import Footer from '@/components/layout/Footer.vue'
 import { onMounted, ref } from 'vue'
@@ -41,7 +34,6 @@ import UserAchievement from '@/views/user/UserAchievement.vue'
 import UserHistory from '@/views/user/UserHistory.vue'
 
 const globalStore = useGlobalStore()
-const global = globalStore.global
 
 const route = useRoute()
 
@@ -52,25 +44,49 @@ onMounted(() => {
   })
     .then((res) => {
       globalStore.setGlobal(res.data.global)
-
       Object.assign(userInfo.value, res.data.result)
-      console.log(userInfo)
     })
     .catch((err) => {
       console.log(err)
     })
 })
-
-
 </script>
 
-
-
 <style scoped>
-/* 整体布局 */
-.user-div {
-  overflow: auto;
+.user-page {
   min-height: calc(100vh - var(--footer-height) - var(--header-height));
-  background-color: #f7f8f9;
+  background: var(--pai-bg-light-1, #f4f6fa);
+  padding-top: calc(var(--header-height, 60px));
+}
+
+.user-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.user-content {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.user-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .user-wrap {
+    padding: 0.75rem;
+  }
 }
 </style>

@@ -1,88 +1,49 @@
 <template>
   <HeaderBar></HeaderBar>
-  <div class="home article-detail flex flex-col">
-    <div class="col-body pg-2-article flex" id="article-detail-body-div">
-      <div class="com-3-layout" >
-        <div class="self-info">
-
-          <!-- 正文 -->
-          <!-- 文章内容 -->
-          <section class="article-info-wrap com-2-panel col-2-article J-articlePanel">
-            <!-- 关联推荐 -->
-            <h4 class="correlation-article-title">后续更新计划</h4>
-            <el-divider></el-divider>
-            <el-card>
-              <MdPreview :model-value="planText"></MdPreview>
-            </el-card>
-          </section>
-        </div>
-
+  <div class="plan-page">
+    <div class="plan-container">
+      <div class="plan-content">
+        <section class="plan-section">
+          <h4 class="plan-section-title">后续更新计划</h4>
+          <el-divider></el-divider>
+          <el-card class="plan-card">
+            <MdPreview :model-value="planText"></MdPreview>
+          </el-card>
+        </section>
       </div>
-      <!--   右侧的图片   -->
       <SideImage></SideImage>
     </div>
-
     <Footer></Footer>
   </div>
-
   <LoginDialog :clicked="loginDialogClicked"></LoginDialog>
 </template>
 
-<style>
-
-.home{
-  min-height: calc(100vh - var(--header-height));
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.photos{
-  max-width: 200px;
-}
-
-@media (max-width: 768px) {
-  .photos{
-    display: none;
-  }
-}
-
-.self-info{
-  max-width: 900px;
-}
-
-</style>
 <script setup lang="ts">
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import Footer from '@/components/layout/Footer.vue'
-import '@/assets/md-preview.css'
 import SideImage from '@/components/layout/SideImage.vue'
 import { MdPreview } from 'md-editor-v3'
-import {onMounted, provide, ref} from 'vue'
+import { onMounted, provide, ref } from 'vue'
 import LoginDialog from '@/components/dialog/LoginDialog.vue'
-import type {CommonResponse} from "@/http/ResponseTypes/CommonResponseType";
-import {GLOBAL_INFO_URL} from "@/http/URL";
-import {doGet} from "@/http/BackendRequests";
-import {messageTip} from "@/util/utils";
-import {useGlobalStore} from "@/stores/global";
+import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
+import { GLOBAL_INFO_URL } from '@/http/URL'
+import { doGet } from '@/http/BackendRequests'
+import { useGlobalStore } from '@/stores/global'
 
 const globalStore = useGlobalStore()
-// 登录框
+
 const changeClicked = () => {
   loginDialogClicked.value = !loginDialogClicked.value
-  console.log("clicked: ", loginDialogClicked.value)
 }
-
-// 获取登录信息
-onMounted(async () => {
-  await doGet<CommonResponse>(GLOBAL_INFO_URL, {})
-      .then((res) => {
-        globalStore.setGlobal(res.data.global)
-      })
-})
-
 provide('loginDialogClicked', changeClicked)
 const loginDialogClicked = ref(false)
+
+onMounted(async () => {
+  await doGet<CommonResponse>(GLOBAL_INFO_URL, {})
+    .then((res) => {
+      globalStore.setGlobal(res.data.global)
+    })
+})
 
 const planText = ref('### 系统更新\n' +
     '\n' +
@@ -242,6 +203,48 @@ const planText = ref('### 系统更新\n' +
     '- [ ] 完善在网络阻塞时各个页面加载不友好的情况（骨架屏实现）\n' +
     '- [x] ~~增加AI聊天功能（已完成）~~\n' +
     '\n')
-
-
 </script>
+
+<style scoped>
+.plan-page {
+  background: var(--pai-bg-light-1, #f4f6fa);
+  min-height: calc(100vh - var(--header-height, 60px));
+  padding-top: calc(var(--header-height, 60px));
+}
+
+.plan-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.plan-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-section {
+  max-width: 900px;
+}
+
+.plan-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pai-color-3-black, #1e2029);
+  margin: 0;
+}
+
+.plan-card {
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .plan-container {
+    padding: 0.75rem;
+    flex-direction: column;
+  }
+}
+</style>

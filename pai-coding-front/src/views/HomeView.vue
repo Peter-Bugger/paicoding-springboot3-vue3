@@ -109,12 +109,10 @@ let global = reactive<GlobalResponse>({...defaultGlobalResponse})
 let vo = reactive<IndexVoResponse>({...defaultIndexVoResponse})
 let articles = reactive<BasicPageType<ArticleType>>({...defaultBasicPage})
 onMounted(() => {
-  // 获取文章列表
   doGet<CommonResponse>(CATEGORY_ARTICLE_LIST_URL, {
     category: route.query['category']
   })
     .then((response) => {
-      console.log(response)
       if(response.data){
         globalStore.setGlobal(response.data.global)
         Object.assign(vo.topArticles, response.data.result.topArticles)
@@ -123,27 +121,23 @@ onMounted(() => {
         Object.assign(articles, response.data.result.articles)
         totalPage.value = Number(response.data.result.articles.pages)
         currentPage.value = Number(response.data.result.articles.current)
-        console.log(articles)
-        // 取消骨架屏显示
         articlesLoading.value = false
         contentLoading.value = false
       }
     })
 })
 
-// 如下是分页操作
 const currentPage = ref(1)
 const totalPage = ref(0)
 const pageSize = ref(10)
 
-const onPageSizeChange = (newPageSize: number) => {
+const onPageSizeChange = () => {
   doGet<CommonResponse>(CATEGORY_ARTICLE_LIST_URL, {
     category: route.query['category'],
     currentPage: currentPage.value,
     pageSize: pageSize.value
   })
     .then((response) => {
-      console.log(response)
       if(response.data){
         globalStore.setGlobal(response.data.global)
         Object.assign(vo.topArticles, response.data.result.topArticles)
@@ -151,7 +145,6 @@ const onPageSizeChange = (newPageSize: number) => {
         Object.assign(articles, response.data.result.articles)
         totalPage.value = Number(response.data.result.articles.pages)
         currentPage.value = Number(response.data.result.articles.current)
-        console.log(articles)
       }
     })
 }
@@ -163,7 +156,6 @@ const onCurrentPageChange = (newCurrentPage: number) => {
     pageSize: pageSize.value
   })
     .then((response) => {
-      console.log(response)
       if(response.data){
         globalStore.setGlobal(response.data.global)
         Object.assign(vo.topArticles, response.data.result.topArticles)
@@ -171,19 +163,15 @@ const onCurrentPageChange = (newCurrentPage: number) => {
         Object.assign(articles, response.data.result.articles)
         totalPage.value = Number(response.data.result.articles.pages)
         currentPage.value = Number(response.data.result.articles.current)
-        console.log(articles)
       }
     })
 }
 
-// 骨架屏显示
 const contentLoading = ref(true)
 const articlesLoading = ref(true)
 
-// 登录框
 const changeClicked = () => {
   loginDialogClicked.value = !loginDialogClicked.value
-  console.log("clicked: ", loginDialogClicked.value)
 }
 
 provide('loginDialogClicked', changeClicked)
@@ -193,7 +181,7 @@ const loginDialogClicked = ref(false)
 
 <style scoped>
 .home-page {
-  background-color: #faf6f1;
+  background: var(--pai-bg-light-1, #f4f6fa);
   min-height: 100vh;
   padding-top: calc(var(--header-height, 60px) + 0.5rem);
   padding-bottom: 2rem;
@@ -204,7 +192,7 @@ const loginDialogClicked = ref(false)
 .home-accent-bar {
   height: 3px;
   background: linear-gradient(90deg, transparent, var(--pai-brand-1-normal), var(--pai-brand-2-hover), var(--pai-brand-1-normal), transparent);
-  opacity: 0.4;
+  opacity: 0.3;
   margin-bottom: 1.75rem;
 }
 
@@ -232,15 +220,15 @@ const loginDialogClicked = ref(false)
 .home-section-divider-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #e0d8d0, transparent);
+  background: linear-gradient(90deg, transparent, var(--pai-border-color-1, #d6dae6), transparent);
 }
 
 .home-section-divider-label {
-  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
-  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #bbb3ab;
-  letter-spacing: 0.15em;
+  color: var(--pai-color-999-gray, #8c8f9c);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -264,7 +252,7 @@ const loginDialogClicked = ref(false)
 }
 
 .article-list-skeleton-item {
-  background: #fff;
+  background: var(--pai-bg-white-fff, #ffffff);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -277,7 +265,7 @@ const loginDialogClicked = ref(false)
 }
 
 .pagination-wrap :deep(.el-pagination) {
-  --el-pagination-button-color: #78746e;
+  --el-pagination-button-color: var(--pai-color-999-gray, #8c8f9c);
   --el-pagination-hover-color: var(--pai-brand-1-normal);
   --el-pagination-font-size: 14px;
   font-weight: 500;
@@ -304,7 +292,7 @@ const loginDialogClicked = ref(false)
 
 .pagination-wrap :deep(.el-pagination .btn-prev),
 .pagination-wrap :deep(.el-pagination .btn-next) {
-  color: #bbb3ab;
+  color: var(--pai-color-999-gray, #8c8f9c);
   min-width: 36px;
   height: 36px;
   border-radius: 8px;

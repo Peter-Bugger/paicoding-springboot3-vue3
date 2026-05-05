@@ -17,14 +17,12 @@
 
       <!-- 内容区 -->
       <div class="article-card-body">
-        <!-- 标签 + 日期 -->
-        <div class="article-card-meta-row">
-          <div class="article-card-tags" v-if="article.tags && article.tags.length > 0">
-            <span class="article-card-tag" v-for="tag in article.tags.slice(0, 2)" :key="tag.tagId">
-              {{tag.tag}}
-            </span>
-            <span v-if="article.tags.length > 3" class="article-card-tag-more">+{{article.tags.length - 3}}</span>
-          </div>
+        <!-- 标签 -->
+        <div class="article-card-tags" v-if="article.tags && article.tags.length > 0">
+          <span class="article-card-tag" v-for="tag in article.tags.slice(0, 2)" :key="tag.tagId">
+            {{tag.tag}}
+          </span>
+          <span v-if="article.tags.length > 3" class="article-card-tag-more">+{{article.tags.length - 3}}</span>
         </div>
 
         <!-- 标题 -->
@@ -52,7 +50,7 @@
               <span>{{article.count.commentCount}}</span>
             </span>
             <span class="article-card-stat article-card-stat--like">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+              <svg class="like-bounce" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
               <span>{{article.count.praiseCount}}</span>
             </span>
           </div>
@@ -63,8 +61,6 @@
 </template>
 
 <script setup lang="ts">
-
-import { format } from 'date-fns';
 import { useRouter } from 'vue-router'
 import type { ArticleType } from '@/http/ResponseTypes/ArticleType/ArticleType'
 import {ArticleTypeNumberEnum} from "@/constants/ArticleTypeEnumConstants";
@@ -80,7 +76,6 @@ const props = defineProps<{
 }>()
 
 const clickArticle = () =>{
-  console.log(props.article.articleType)
   if(props.article.articleType === ArticleTypeNumberEnum.COLUMN){
     doGet<CommonResponse>(`${ARTICLE_COLUMN_RELATION_URL}/${props.article.articleId}`, {}).then(res=>{
       router.push(`/column/${res.data.result.columnId}/${res.data.result.section}`)
@@ -92,23 +87,22 @@ const clickArticle = () =>{
     router.push('/article/detail/'+props.article.articleId)
   }
 }
-
 </script>
 
 <style scoped>
 .article-card {
   position: relative;
-  background: #fff;
+  background: var(--pai-bg-white-fff, #ffffff);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 3px rgba(26, 29, 39, 0.04), 0 1px 2px rgba(26, 29, 39, 0.03);
   animation: cardFadeIn 0.5s ease-out both;
 }
 
 .article-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.07), 0 3px 8px rgba(0,0,0,0.03);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(26, 29, 39, 0.08), 0 4px 12px rgba(26, 29, 39, 0.04);
 }
 
 .article-card-link {
@@ -144,7 +138,7 @@ const clickArticle = () =>{
 .article-card-cover-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.06) 100%);
+  background: linear-gradient(180deg, transparent 50%, rgba(15, 17, 26, 0.06) 100%);
   pointer-events: none;
 }
 
@@ -160,18 +154,12 @@ const clickArticle = () =>{
   flex: 1;
 }
 
-/* ── Meta Row ── */
-.article-card-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
+/* ── Tags ── */
 .article-card-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 
 .article-card-tag {
@@ -188,17 +176,16 @@ const clickArticle = () =>{
 
 .article-card-tag-more {
   font-size: 0.7rem;
-  color: #bbb;
+  color: var(--pai-color-999-gray, #8c8f9c);
   line-height: 1.8;
 }
 
 /* ── Title ── */
 .article-card-title {
-  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.5;
-  color: #1a1a1a;
+  color: var(--pai-color-3-black, #1e2029);
   margin: 0 0 0.45rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -213,7 +200,7 @@ const clickArticle = () =>{
 
 .article-card-pin {
   display: inline-block;
-  font-family: -apple-system, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   font-weight: 700;
   color: #fff;
@@ -227,7 +214,7 @@ const clickArticle = () =>{
 /* ── Summary ── */
 .article-card-summary {
   font-size: 0.85rem;
-  color: #88817a;
+  color: var(--pai-color-3-gray, #6b7084);
   line-height: 1.65;
   margin: 0 0 0.85rem;
   display: -webkit-box;
@@ -242,7 +229,7 @@ const clickArticle = () =>{
   align-items: center;
   gap: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #f3efe9;
+  border-top: 1px solid var(--pai-bg-light-2, #eef1f7);
   flex-wrap: wrap;
 }
 
@@ -259,7 +246,7 @@ const clickArticle = () =>{
   border-radius: 50%;
   background-size: cover;
   background-position: center;
-  background-color: #f0f0f0;
+  background-color: var(--pai-bg-light-1, #f4f6fa);
   flex-shrink: 0;
   box-shadow: 0 0 0 1.5px rgba(255,255,255,0.8);
 }
@@ -267,7 +254,7 @@ const clickArticle = () =>{
 .article-card-author-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #666;
+  color: var(--pai-color-4-gray, #484d5e);
   text-decoration: none;
   position: relative;
   z-index: 2;
@@ -290,17 +277,32 @@ const clickArticle = () =>{
   align-items: center;
   gap: 0.3rem;
   font-size: 0.75rem;
-  color: #c4bdb5;
+  color: var(--pai-color-999-gray, #8c8f9c);
   transition: color 0.25s ease;
 }
 
 .article-card-stat svg {
   opacity: 0.5;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.article-card:hover .article-card-stat svg {
+  opacity: 0.8;
+}
+
+.article-card:hover .like-bounce {
+  animation: likePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
 }
 
 .article-card:hover .article-card-stat {
-  color: #b0a89e;
+  color: var(--pai-color-3-gray, #6b7084);
+}
+
+@keyframes likePop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
 }
 
 /* ── Responsive ── */

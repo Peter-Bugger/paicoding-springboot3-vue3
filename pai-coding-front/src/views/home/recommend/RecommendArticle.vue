@@ -1,5 +1,8 @@
 <template>
-  <section class="hero-section" :style="{ '--hero-accent': backgroundColor }">
+  <section class="hero-section">
+    <!-- 几何背景装饰 -->
+    <div class="hero-bg-pattern"></div>
+    <div class="hero-section-inner">
     <div class="hero-grid">
       <!-- 左侧：首篇推荐文章（大封面） -->
       <a
@@ -10,8 +13,6 @@
         <div class="hero-featured-img-wrap">
           <img
             :src="topArticles[0].cover"
-            :id="'cover0'"
-            @load="setColor(0)"
             class="hero-featured-img"
           />
           <div class="hero-featured-gradient"></div>
@@ -63,51 +64,54 @@
         </div>
       </div>
     </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { format } from 'date-fns'
-import { ref } from 'vue'
-import Vibrant from 'node-vibrant/lib/bundle'
 import type { ArticleType } from '@/http/ResponseTypes/ArticleType/ArticleType'
 
 defineProps<{
   topArticles: ArticleType[]
 }>()
-
-const backgroundColor = ref<string>('#f0e8e0')
-
-function setColor(index: number) {
-  if(index !== 0) return
-  const img = document.getElementById(`cover${index}`) as HTMLImageElement
-  if(img){
-    if (img.complete) {
-      applyColor(img)
-    } else {
-      img.addEventListener("load", function () {
-        applyColor(img)
-      })
-    }
-  }
-}
-
-function applyColor(img: HTMLImageElement){
-  Vibrant.from(img)
-    .getPalette()
-    .then((palette: any) => {
-      let rgb = palette.Vibrant?.getHex()
-      backgroundColor.value = rgb || '#f0e8e0'
-    })
-}
 </script>
 
 <style scoped>
 .hero-section {
+  position: relative;
   margin-bottom: 2.5rem;
   border-radius: 20px;
   overflow: hidden;
   animation: heroReveal 0.7s ease-out both;
+}
+
+/* 几何网格背景 */
+.hero-bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 25% 40%, rgba(45, 124, 246, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 60%, rgba(45, 124, 246, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-bg-pattern::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(45, 124, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 124, 246, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 20%, transparent 70%);
+}
+
+.hero-section-inner {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-grid {
@@ -116,8 +120,8 @@ function applyColor(img: HTMLImageElement){
   min-height: 400px;
   border-radius: 20px;
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  background: var(--pai-bg-white-fff, #ffffff);
+  box-shadow: 0 2px 16px rgba(26, 29, 39, 0.04);
 }
 
 /* ═══════════ Featured (Left) ═══════════ */
@@ -127,7 +131,7 @@ function applyColor(img: HTMLImageElement){
   flex-direction: column;
   text-decoration: none;
   overflow: hidden;
-  background: #faf6f1;
+  background: var(--pai-bg-light-1, #f4f6fa);
 }
 
 .hero-featured-img-wrap {
@@ -151,7 +155,7 @@ function applyColor(img: HTMLImageElement){
 .hero-featured-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.5) 100%);
+  background: linear-gradient(180deg, transparent 30%, rgba(15, 17, 26, 0.5) 100%);
 }
 
 .hero-featured-badge {
@@ -166,7 +170,7 @@ function applyColor(img: HTMLImageElement){
   border-radius: 6px;
   letter-spacing: 0.05em;
   backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(255, 105, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(45, 124, 246, 0.3);
 }
 
 .hero-featured-body {
@@ -195,11 +199,11 @@ function applyColor(img: HTMLImageElement){
 }
 
 .hero-featured-title {
-  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
   font-size: 1.45rem;
   font-weight: 700;
   line-height: 1.4;
-  color: #1a1a1a;
+  color: var(--pai-color-3-black, #1e2029);
   margin: 0 0 0.5rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -214,7 +218,7 @@ function applyColor(img: HTMLImageElement){
 
 .hero-featured-desc {
   font-size: 0.85rem;
-  color: #88817a;
+  color: var(--pai-color-3-gray, #6b7084);
   line-height: 1.65;
   margin: 0 0 1rem;
   display: -webkit-box;
@@ -229,7 +233,7 @@ function applyColor(img: HTMLImageElement){
   align-items: center;
   gap: 0.6rem;
   font-size: 0.8rem;
-  color: #99938c;
+  color: var(--pai-color-999-gray, #8c8f9c);
 }
 
 .hero-featured-author {
@@ -237,7 +241,7 @@ function applyColor(img: HTMLImageElement){
   align-items: center;
   gap: 0.4rem;
   font-weight: 500;
-  color: #666;
+  color: var(--pai-color-4-gray, #484d5e);
 }
 
 .hero-featured-author-dot {
@@ -250,7 +254,7 @@ function applyColor(img: HTMLImageElement){
 .hero-featured-divider {
   width: 1px;
   height: 12px;
-  background: #ddd6ce;
+  background: var(--pai-border-color-1, #d6dae6);
 }
 
 /* ═══════════ Side (Right) ═══════════ */
@@ -258,8 +262,8 @@ function applyColor(img: HTMLImageElement){
   display: flex;
   flex-direction: column;
   padding: 1.75rem 1.5rem;
-  background: #fff;
-  border-left: 1px solid #f0ebe5;
+  background: var(--pai-bg-white-fff, #ffffff);
+  border-left: 1px solid var(--pai-border-color-1, #d6dae6);
 }
 
 .hero-side-header {
@@ -268,7 +272,7 @@ function applyColor(img: HTMLImageElement){
   gap: 0.6rem;
   margin-bottom: 0.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f5f0ea;
+  border-bottom: 1px solid var(--pai-bg-light-2, #eef1f7);
 }
 
 .hero-side-heading-bar {
@@ -281,7 +285,7 @@ function applyColor(img: HTMLImageElement){
 .hero-side-heading {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #2c2c2c;
+  color: var(--pai-color-3-black, #1e2029);
   margin: 0;
   letter-spacing: 0.03em;
 }
@@ -298,7 +302,7 @@ function applyColor(img: HTMLImageElement){
   gap: 0.9rem;
   padding: 0.9rem 0;
   text-decoration: none;
-  border-bottom: 1px solid #f8f3ed;
+  border-bottom: 1px solid var(--pai-bg-light-2, #eef1f7);
   opacity: 0;
   animation: slideUp 0.4s ease-out forwards;
   transition: all 0.3s ease;
@@ -312,16 +316,16 @@ function applyColor(img: HTMLImageElement){
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   margin: 0 -0.5rem;
-  background: rgba(255, 105, 0, 0.03);
+  background: var(--pai-brand-7-light, rgba(45, 124, 246, 0.06));
   border-radius: 8px;
   border-bottom-color: transparent;
 }
 
 .hero-side-item-num {
-  font-family: "Noto Serif SC", serif;
-  font-size: 1.3rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #ddd6ce;
+  color: var(--pai-color-5-gray, #d0d3dd);
   line-height: 1.3;
   min-width: 1.8rem;
   transition: color 0.3s ease;
@@ -339,7 +343,7 @@ function applyColor(img: HTMLImageElement){
 .hero-side-item-title {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #2c2c2c;
+  color: var(--pai-color-3-black, #1e2029);
   line-height: 1.45;
   margin: 0 0 0.35rem;
   display: -webkit-box;
@@ -358,11 +362,11 @@ function applyColor(img: HTMLImageElement){
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;
-  color: #bbb3ab;
+  color: var(--pai-color-999-gray, #8c8f9c);
 }
 
 .hero-side-item-meta-dot {
-  color: #ddd6ce;
+  color: var(--pai-color-5-gray, #d0d3dd);
 }
 
 /* ═══════════ Animations ═══════════ */
@@ -388,7 +392,7 @@ function applyColor(img: HTMLImageElement){
 
   .hero-side {
     border-left: none;
-    border-top: 1px solid #f0ebe5;
+    border-top: 1px solid var(--pai-border-color-1, #d6dae6);
     padding: 1.25rem;
   }
 

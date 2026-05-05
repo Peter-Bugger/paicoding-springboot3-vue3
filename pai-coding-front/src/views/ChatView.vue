@@ -1,400 +1,274 @@
 <template>
   <HeaderBar></HeaderBar>
-  <!-- 导航栏 -->
-  <div class="custom-home">
-    <div class="chat-wrap">
-<!--      <div class="chat-sidebar">-->
-        <!-- 侧边栏 -->
-<!--        <ChatSideBar></ChatSideBar>-->
-<!--      </div>-->
+  <div class="chat-page">
+    <div class="chat-container">
       <div class="chat-main">
-        <div class="window-header">
-          <div class="window-header-title">
-            <div class="name">
-              <div class="window-header-main-title home_chat-body-title__5S8w4"
-                   v-if="!global.isLogin || !global.user">
+        <div class="chat-header">
+          <div class="chat-header-info">
+            <div class="chat-header-title">
+              <div v-if="!global.isLogin || !global.user" class="chat-header-login-prompt">
                 点击登录，体验编程汇智能对话
               </div>
-              <div class="chat-annotation active-color" v-else>
-                {{global.user.userName}}
-<!--                <div th:switch="${global.user.starStatus.code}">-->
-<!--                  <a th:case="-1"-->
-<!--                     href="#"-->
-<!--                     class="annotation"-->
-<!--                     data-target="#registerModal"-->
-<!--                     data-toggle="modal"-->
-<!--                  >绑定编程星球，提升每天对话次数</a>-->
-<!--                  <span th:case="0" class="annotation">审核中</span>-->
-<!--                  <span th:case="1" class="annotation">试用中，添加管理员微信 xyf857998989 催审核</span>-->
-<!--                  <div class="c-bubble-trigger com-verification" th:case="2">-->
-<!--                    <i class="verified"></i>-->
-<!--                  </div>-->
-<!--                </div>-->
-                    <span class="annotation">试用中</span>
-                    <div class="c-bubble-trigger com-verification">
-                      <i class="verified"></i>
-                    </div>
+              <div class="chat-header-user" v-else>
+                <span class="chat-header-username">{{global.user.userName}}</span>
+                <span class="chat-header-status">试用中</span>
               </div>
-
             </div>
-
-            <div class="window-header-sub-title">与派聪明的 <span id="chatCnt">{{chatUsedCnt}}/{{chatMaxCnt}}</span> 条对话
-              <span>(以天为单位，无限期重置）</span>
+            <div class="chat-header-sub">
+              与派聪明的 <span class="chat-header-cnt">{{chatUsedCnt}}/{{chatMaxCnt}}</span> 条对话
+              <span class="chat-header-hint">（以天为单位，无限期重置）</span>
             </div>
           </div>
-
-          <div class="chat-type">
-            <!-- 加一个下拉框，选项是 OpenAI 讯飞星火 -->
+          <div class="chat-header-model">
             <el-select
-              class="w-40"
+              class="chat-model-select"
               @change="chatTypeChange"
               v-model="chatType"
               placeholder="选择对话模型"
-              default-first-option="XUN_FEI_AI"
             >
-              <el-option
-                :value="AiTypeEnum.XUN_FEI_AI"
-                label="讯飞星火"
-              />
-<!--              <el-option-->
-<!--                :value="AiTypeEnum.PAI_AI"-->
-<!--                label="技术派"-->
-<!--              />-->
-<!--              <el-option-->
-<!--                :value="AiTypeEnum.CHAT_GPT_3_5"-->
-<!--                label="OPENAI"-->
-<!--              />-->
+              <el-option :value="AiTypeEnum.XUN_FEI_AI" label="讯飞星火" />
             </el-select>
           </div>
         </div>
-        <div class="overflow-auto flex-grow" ref="chatContent" id="chat-content">
-          <div class="message-content overflow-auto" v-for="(msg, id) in msgRecords[chatType]" :key="id">
-            <div v-if="msg.msgType == 'question'" class="flex justify-end">
-              <p style="background: #FCEAE0" class="center-content p-2 rounded-lg m-1 text-sm">{{msg.question}}</p>
-              <el-avatar :size="35" :src="global.user.photo" class="m-1"></el-avatar>
-            </div>
-            <div v-if="msg.msgType == 'answer'" class="flex justify-start">
-              <el-avatar :size="35" class="m-1 min-w-8" src="https://xuyifei-oss.oss-cn-beijing.aliyuncs.com/tech-pai/images/avatar/llm-avatar1.png"></el-avatar>
-              <p style="background: #F2F2F2" class="center-content p-2 rounded-lg m-1 text-sm"><MdPreview style="font-size: small" :model-value="msg.answer"></MdPreview></p>
-            </div>
 
-            <el-divider v-if="msg.msgType == 'history'">我是可爱的历史记录分割线</el-divider>
-
+        <div class="chat-messages" ref="chatContent" id="chat-content">
+          <div class="chat-msg" v-for="(msg, id) in msgRecords[chatType]" :key="id">
+            <div v-if="msg.msgType == 'question'" class="chat-msg-row chat-msg-row--user">
+              <div class="chat-msg-bubble chat-msg-bubble--user">{{msg.question}}</div>
+              <el-avatar :size="35" :src="global.user.photo" class="chat-msg-avatar"></el-avatar>
+            </div>
+            <div v-if="msg.msgType == 'answer'" class="chat-msg-row chat-msg-row--ai">
+              <el-avatar :size="35" class="chat-msg-avatar" src="https://xuyifei-oss.oss-cn-beijing.aliyuncs.com/tech-pai/images/avatar/llm-avatar1.png"></el-avatar>
+              <div class="chat-msg-bubble chat-msg-bubble--ai"><MdPreview :model-value="msg.answer" /></div>
+            </div>
+            <div v-if="msg.msgType == 'history'" class="chat-msg-divider">
+              <span class="chat-msg-divider-text">历史消息</span>
+            </div>
           </div>
-          <div v-if="aiLoading" class="flex justify-start">
-            <el-avatar :size="35" class="m-1" src="https://xuyifei-oss.oss-cn-beijing.aliyuncs.com/tech-pai/images/avatar/llm-avatar1.png"></el-avatar>
-            <p style="background: #F2F2F2" class="center-content p-2 rounded-lg m-1 text-sm"> <el-icon :size="20" class="is-loading"><Loading /></el-icon></p>
+          <div v-if="aiLoading" class="chat-msg-row chat-msg-row--ai">
+            <el-avatar :size="35" class="chat-msg-avatar" src="https://xuyifei-oss.oss-cn-beijing.aliyuncs.com/tech-pai/images/avatar/llm-avatar1.png"></el-avatar>
+            <div class="chat-msg-bubble chat-msg-bubble--ai">
+              <el-icon :size="20" class="is-loading"><Loading /></el-icon>
+            </div>
           </div>
         </div>
 
-        <div class="chat-input" id="chat-textarea">
-          <textarea v-model="chatText" id="input-field" class="form-control" rows="3" :placeholder="!global.isLogin || !global.user.userId || chatTextAreaDisabled? '你好，快登录和我对线吧': '可按回车发送'" :disabled="!global.isLogin || !global.user.userId || chatTextAreaDisabled">
-          </textarea>
-
-          <button @click="sendMsg" id="send-btn" :disabled="!global.isLogin || !global.user.userId || chatBtnDisabled">
-            <div class="button_icon-button-icon__qlUH3 no-dark">
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="none"><defs><path id="send-white_svg__a" d="M0 0h16v16H0z"></path></defs><g><mask id="send-white_svg__b" fill="#fff"><use xlink:href="#send-white_svg__a"></use></mask><g mask="url(#send-white_svg__b)"><path transform="translate(1.333 2)" d="M0 4.71 6.67 6l1.67 6.67L12.67 0 0 4.71Z" style="stroke: rgb(255, 255, 255); stroke-width: 1.33333; stroke-opacity: 1; stroke-dasharray: 0, 0;"></path><path transform="translate(8.003 6.117)" d="M0 1.89 1.89 0" style="stroke: rgb(255, 255, 255); stroke-width: 1.33333; stroke-opacity: 1; stroke-dasharray: 0, 0;"></path></g></g></svg>
-            </div>
-            <div v-if="!global.isLogin || !global.user.userId" class="button_icon-button-text__k3vob">等待登录</div>
-            <div v-else class="button_icon-button-text__k3vob">发送</div>
+        <div class="chat-input-area" id="chat-textarea">
+          <textarea
+            v-model="chatText"
+            id="input-field"
+            class="chat-input-field"
+            rows="3"
+            :placeholder="!global.isLogin || !global.user.userId || chatTextAreaDisabled ? '你好，快登录和我对线吧' : '可按回车发送'"
+            :disabled="!global.isLogin || !global.user.userId || chatTextAreaDisabled"
+          ></textarea>
+          <button
+            @click="sendMsg"
+            id="send-btn"
+            class="chat-send-btn"
+            :disabled="!global.isLogin || !global.user.userId || chatBtnDisabled"
+          >
+            <svg class="chat-send-icon" viewBox="0 0 16 16" fill="none">
+              <path d="M1.333 4.71 6.67 6l1.67 6.67L12.67 0 1.333 4.71Z" fill="currentColor" />
+              <path d="M8.003 6.117 10 8" stroke="currentColor" stroke-width="1.333" />
+            </svg>
+            <span>{{ !global.isLogin || !global.user.userId ? '等待登录' : '发送' }}</span>
           </button>
         </div>
       </div>
     </div>
-    <!-- 底部信息 -->
     <Footer></Footer>
   </div>
   <LoginDialog :clicked="loginDialogClicked"></LoginDialog>
 </template>
 
 <script setup lang="ts">
-
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import Footer from '@/components/layout/Footer.vue'
 import LoginDialog from '@/components/dialog/LoginDialog.vue'
 import { useGlobalStore } from '@/stores/global'
 import { nextTick, onMounted, provide, ref } from 'vue'
-import ChatSideBar from '@/views/chat-home/ChatSideBar.vue'
 import { doGet } from '@/http/BackendRequests'
 import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
-import { BASE_URL, GLOBAL_INFO_URL, WS_URL } from '@/http/URL'
+import { GLOBAL_INFO_URL, WS_URL } from '@/http/URL'
 import { getCookie, messageTip } from '@/util/utils'
-//引入使用SockJS
-import Stomp from "stompjs";
-import { Loading, StarFilled } from '@element-plus/icons-vue'
+import Stomp from 'stompjs'
+import { Loading } from '@element-plus/icons-vue'
 import { MdPreview } from 'md-editor-v3'
-import '@/assets/llm-answer.css'
 import type { WebSocketRecordsType } from '@/http/ResponseTypes/ChatType/WebSocketRecordsType'
 import type { WebSocketResponseType } from '@/http/ResponseTypes/WebSocketResponseType'
 import { type AiTypeConstants, AiTypeEnum } from '@/constants/AiTypeEnumConstants'
+
 const globalStore = useGlobalStore()
 const global = globalStore.global
 
-// 聊天次数
 const chatUsedCnt = ref(0)
 const chatMaxCnt = ref(0)
-// 聊天框设置
 const chatText = ref('')
 const chatBtnDisabled = ref(true)
-const chatBtnText = ref('等待登录')
 const chatTextAreaDisabled = ref(true)
-// 动态根据ai的回答变化html
-const chatContent = ref<HTMLElement | null>(null);
-const answers = ref('')
-// 获取JWT token
-const session = getCookie("f-session")
-// 大模型的选择器
+const chatContent = ref<HTMLElement | null>(null)
+const aiLoading = ref(false)
+
+const session = getCookie('f-session')
 const chatType = ref<AiTypeConstants>('XUN_FEI_AI')
-const chatTypeChange = (value: string ) => {
-  if(global.isLogin){
-    answers.value = ''
-    disconnect()
-    initWs()
-  }
-}
-// stomp协议的客户端
-let stompClient: Stomp.Client | null
+let stompClient: Stomp.Client | null = null
 
 const msgRecords = ref<Record<AiTypeConstants, WebSocketRecordsType[]>>({
   XUN_FEI_AI: [],
   CHAT_GPT_3_5: [],
   PAI_AI: []
 })
-const aiLoading = ref(false)
 
+const chatTypeChange = () => {
+  if (global.isLogin) {
+    disconnect()
+    initWs()
+  }
+}
 
-// 初始化ws
 const initWs = () => {
   msgRecords.value[chatType.value] = []
-  let aiType = chatType.value
-  console.log("AITYPE = ", aiType);
-  console.log("session = ", session)
-  let socket = new WebSocket(`${WS_URL}/gpt/${session}/${aiType}`)
+  const aiType = chatType.value
+  const socket = new WebSocket(`${WS_URL}/gpt/${session}/${aiType}`)
   stompClient = Stomp.over(socket)
-  stompClient.connect({}, function(frame) {
-    console.log('ws连接成功: ' + frame);
-    // 开放按钮和输入框
+  stompClient.connect({}, () => {
     chatBtnDisabled.value = false
     chatTextAreaDisabled.value = false
-    chatBtnText.value = '发送'
-    // 清空输入框
     chatText.value = ''
 
-    // @ts-ignore
-    stompClient.subscribe('/user/chat/rsp', function(message: Stomp.Message){
-      // 表示这个长连接，订阅了 "/chat/rsp" , 这样后端向这个路径转发消息时，我们就可以拿到对应的返回
-      // 解析 JSON 字符串
-      console.log("rsp:", message);
-      let res = JSON.parse(message.body);
-      console.log("res:", res);
-
+    stompClient?.subscribe('/user/chat/rsp', (message: Stomp.Message) => {
+      const res = JSON.parse(message.body)
       chatUsedCnt.value = res.usedCnt
       chatMaxCnt.value = res.maxCnt
-
       const data: WebSocketResponseType[] = res.records
       if (data.length > 1) {
-        // 返回历史全部信息
-        answers.value = ''
         for (let i = data.length - 1; i >= 0; i--) {
-          if (data[i].question) {
-            addClientMsg(data[i], false);
+          addClientMsg(data[i])
+          if (i === 0) {
+            msgRecords.value[chatType.value].push({ msgType: 'history' })
           }
-          if (i == 0) {
-            msgRecords.value[chatType.value].push({
-              msgType: 'history'
-            })
-          }
-          appendServerMessage(data[i]);
+          appendServerMessage(data[i])
         }
-
-
-        if (chatContent.value) {
-          chatContent.value.scrollTop = chatContent.value.scrollHeight;
-        }
+        scrollToBottom()
       } else {
-        appendServerMessage(data[0]);
+        appendServerMessage(data[0])
       }
-
-      // 添加完消息后，除了流式持续返回这种场景，其他的恢复按钮的状态
-      if(data[data.length - 1].answerType != 'STREAM') {
+      if (data[data.length - 1]?.answerType !== 'STREAM') {
         chatBtnDisabled.value = false
       }
     })
-
   })
-  // 关闭链接
-  socket.onclose = disconnect;
-
+  socket.onclose = disconnect
 }
 
-function disconnect() {
+const disconnect = () => {
   if (stompClient !== null) {
-    stompClient.disconnect(() => {});
+    stompClient.disconnect(() => {})
   }
-  console.log("ws中断");
-  stompClient = null;
-  // 提醒用户重新连接
+  stompClient = null
   chatTextAreaDisabled.value = true
   chatBtnDisabled.value = false
-  chatBtnText.value = '重连'
 }
 
-// 添加服务器端消息
-function appendServerMessage(answer: WebSocketResponseType) {
-  let content = answer.answer;
-  let time = answer.answerTime;
-  let answerType = answer.answerType;
-  let chatId = answer.chatUid
-  let appendLastChat = false;
+const appendServerMessage = (answer: WebSocketResponseType) => {
+  const content = answer.answer
+  const answerType = answer.answerType
+  const chatId = answer.chatUid
+  let appendLastChat = false
   aiLoading.value = false
-  // 如果 source 等于"CHAT_GPT_3_5"
-  if("JSON" === answerType) {
-    // 需要对 body 的 JSON 字符串进行解析
-    const res = JSON.parse(content);
-    console.log("CHAT_GPT_3_5 res:", res);
-    if (res.length === 1) {
-      content = res[0].message.content;
+
+  if ('JSON' === answerType) {
+    const parsed = JSON.parse(content)
+    if (parsed.length === 1) {
+      msgRecords.value[chatType.value].push({
+        msgType: 'answer',
+        answer: parsed[0].message.content,
+        answerTime: answer.answerTime,
+        chatUid: chatId
+      })
+      appendLastChat = true
     }
   } else if ('STREAM' === answerType || 'STREAM_END' === answerType) {
-    // const lastDiv = $(`#${chatId}`)
-    const lastIndex = msgRecords.value[chatType.value].findLastIndex((msg) => msg.msgType === 'answer' && msg.chatUid === chatId)
-    if(lastIndex == -1){
-      // 上一次没有输出过，则格式化文本，重新输出
-    }else{
-      // 对于流式返回的结果，找上一次的返回，进行结果的追加，手动将分隔符给干掉
+    const lastIndex = msgRecords.value[chatType.value].findLastIndex(
+      (msg) => msg.msgType === 'answer' && msg.chatUid === chatId
+    )
+    if (lastIndex !== -1) {
       msgRecords.value[chatType.value][lastIndex].answer = content
       appendLastChat = true
     }
-
   }
 
-  if(!appendLastChat) {
+  if (!appendLastChat) {
     msgRecords.value[chatType.value].push({
       msgType: 'answer',
       answer: content,
-      answerTime: time,
+      answerTime: answer.answerTime,
       chatUid: chatId
     })
   }
-  scrollToBottom();
-
-
-  // 添加完后滚动到底部
-  // scrollToBottom();
-
-  // copy();
-
+  scrollToBottom()
 }
 
-// 添加用户端消息
-function addClientMsg(data: WebSocketResponseType, showLoading: boolean) {
+const addClientMsg = (data: WebSocketResponseType) => {
   msgRecords.value[chatType.value].push({
     msgType: 'question',
     question: data.question,
     questionTime: data.questionTime
   })
-  // 添加完后滚动到底部
-  scrollToBottom();
+  scrollToBottom()
 }
-
 
 const scrollToBottom = () => {
   nextTick(() => {
     if (chatContent.value) {
-      chatContent.value.scrollTop = chatContent.value.scrollHeight;
-      chatContent.value.scroll({
-        top: chatContent.value.scrollHeight + 100,
+      chatContent.value.scrollTo({
+        top: chatContent.value.scrollHeight,
         behavior: 'smooth'
-      });
+      })
     }
-  });
+  })
 }
 
-// 复制功能
-// function copy() {
-//   // 从 chatContent 中获取最后一个 chat-message
-//   const chatMessage = chatContent.value.children(".home_chat-message__rdH_g").last();
-//   console.log("chatContent", chatMessage);
-//   // 从 chatMessage 找出复制按钮
-//   const copyBtn = chatMessage.find(".home_chat-message-top-action__wXKmA").get(0);
-//
-//   const clipboard = new ClipboardJS(copyBtn, {
-//     text: function(trigger) {
-//       let copyInput = chatMessage.find('.markdown-body').get(0);
-//       return copyInput.innerText;
-//     }
-//   });
-//
-//   clipboard.on('success', function(e) {
-//     // 复制成功
-//     toastr.info("复制成功");
-//     e.clearSelection();
-//   });
-//
-//   clipboard.on('error', function(e) {
-//     console.log('复制失败');
-//   });
-// }
-
-// 发送问题
 const doSend = () => {
   const qa = chatText.value
   if (qa.length > 512) {
-    messageTip("提问长度请不要超过512字符哦~", 'info')
-    return;
+    messageTip('提问长度请不要超过512字符哦~', 'info')
+    return
   }
-  // 表示将消息转发到那个目标，类似于http请求中的path路径
-  // @ts-ignore
-  stompClient.send("/app/chat/" + session, {'s-uid': session}, qa);
-  // 清空 textarea
+  stompClient?.send('/app/chat/' + session, { 's-uid': session }, qa)
   chatText.value = ''
-
-  msgRecords.value[chatType.value].push({
-    msgType: 'question',
-    question: qa
-  })
+  msgRecords.value[chatType.value].push({ msgType: 'question', question: qa })
   aiLoading.value = true
-
-  // 将 button 设为禁用，防止用户连续点击
   chatBtnDisabled.value = true
 }
 
-// 绑定按钮事件
 const sendMsg = () => {
-  if(stompClient == null){
+  if (stompClient == null) {
     initWs()
-  }else{
-    // 如果消息内容为空的时候重新聚焦到输入框
-    if (chatText.value == '') {
-      messageTip("请输入内容", 'info')
+  } else {
+    if (chatText.value === '') {
+      messageTip('请输入内容', 'info')
     } else {
-      // 发送消息
-      doSend();
+      doSend()
     }
   }
 }
 
-// 获取登录信息
 onMounted(async () => {
   await doGet<CommonResponse>(GLOBAL_INFO_URL, {})
     .then((res) => {
       globalStore.setGlobal(res.data.global)
     })
-  // 开始进行ws的初始化
-  if(global.isLogin){
+  if (global.isLogin) {
     initWs()
-
-  }else{
-    messageTip("请先登录", 'info')
+  } else {
+    messageTip('请先登录', 'info')
   }
-
-  console.log(global.isLogin, global.user.userId, chatTextAreaDisabled.value)
 })
 
-// 登录框
 const changeClicked = () => {
   loginDialogClicked.value = !loginDialogClicked.value
-  console.log("clicked: ", loginDialogClicked.value)
 }
 
 provide('loginDialogClicked', changeClicked)
@@ -402,5 +276,232 @@ const loginDialogClicked = ref(false)
 </script>
 
 <style scoped>
+.chat-page {
+  background: var(--pai-bg-light-1, #f4f6fa);
+  min-height: calc(100vh - var(--header-height, 60px));
+  padding-top: calc(var(--header-height, 60px));
+  display: flex;
+  flex-direction: column;
+}
 
+.chat-container {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--pai-bg-white-fff, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(26, 29, 39, 0.04);
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--pai-bg-light-2, #eef1f7);
+}
+
+.chat-header-info {
+  flex: 1;
+}
+
+.chat-header-login-prompt {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pai-color-4-gray, #484d5e);
+}
+
+.chat-header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chat-header-username {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--pai-color-3-black, #1e2029);
+}
+
+.chat-header-status {
+  font-size: 0.72rem;
+  color: var(--pai-color-999-gray, #8c8f9c);
+  background: var(--pai-bg-light-2, #eef1f7);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.chat-header-sub {
+  font-size: 0.8rem;
+  color: var(--pai-color-999-gray, #8c8f9c);
+  margin-top: 0.3rem;
+}
+
+.chat-header-cnt {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: var(--pai-brand-1-normal);
+}
+
+.chat-header-hint {
+  font-size: 0.72rem;
+  color: var(--pai-color-5-gray, #d0d3dd);
+}
+
+.chat-model-select {
+  width: 140px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-msg-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.chat-msg-row--user {
+  justify-content: flex-end;
+}
+
+.chat-msg-row--ai {
+  justify-content: flex-start;
+}
+
+.chat-msg-avatar {
+  flex-shrink: 0;
+}
+
+.chat-msg-bubble {
+  max-width: 70%;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.chat-msg-bubble--user {
+  background: var(--pai-brand-7-light, rgba(45, 124, 246, 0.12));
+  color: var(--pai-color-3-black, #1e2029);
+  border-bottom-right-radius: 4px;
+}
+
+.chat-msg-bubble--ai {
+  background: var(--pai-bg-light-1, #f4f6fa);
+  color: var(--pai-color-3-black, #1e2029);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-msg-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.chat-msg-divider::before,
+.chat-msg-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--pai-bg-light-2, #eef1f7);
+}
+
+.chat-msg-divider-text {
+  font-size: 0.75rem;
+  color: var(--pai-color-5-gray, #d0d3dd);
+  white-space: nowrap;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--pai-bg-light-2, #eef1f7);
+  align-items: flex-end;
+}
+
+.chat-input-field {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--pai-border-color-1, #d6dae6);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--pai-bg-light-1, #f4f6fa);
+  color: var(--pai-color-3-black, #1e2029);
+}
+
+.chat-input-field:focus {
+  border-color: var(--pai-brand-1-normal);
+  box-shadow: 0 0 0 3px rgba(45, 124, 246, 0.1);
+}
+
+.chat-input-field::placeholder {
+  color: var(--pai-color-5-gray, #d0d3dd);
+}
+
+.chat-send-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--pai-brand-1-normal);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: var(--pai-brand-2-hover, #4a8ff7);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-send-icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    padding: 0.75rem;
+  }
+  .chat-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .chat-msg-bubble {
+    max-width: 85%;
+  }
+}
 </style>

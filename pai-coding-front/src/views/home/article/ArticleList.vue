@@ -1,10 +1,11 @@
 <template>
-  <div class="article-grid">
+  <div ref="gridRef" class="article-grid">
     <div
       v-for="(article, index) in articles"
       :key="article.articleId"
       class="article-grid-item"
-      :style="{ animationDelay: (index * 0.05) + 's' }"
+      :class="{ 'article-grid-item--visible': visible }"
+      :style="{ animationDelay: visible ? (index * 0.05) + 's' : '0s' }"
     >
       <ArticleCard :article="article"></ArticleCard>
     </div>
@@ -12,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import ArticleCard from '@/components/article/ArticleCard.vue'
 import type { ArticleType } from '@/http/ResponseTypes/ArticleType/ArticleType'
 
@@ -20,6 +21,27 @@ defineProps<{
   articles: ArticleType[]
 }>()
 
+const gridRef = ref<HTMLElement | null>(null)
+const visible = ref(false)
+let observer: IntersectionObserver | null = null
+
+onMounted(() => {
+  if (!gridRef.value) return
+  observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        visible.value = true
+        observer?.unobserve(entry.target)
+      }
+    },
+    { threshold: 0.05 }
+  )
+  observer.observe(gridRef.value)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+})
 </script>
 
 <style scoped>
@@ -36,9 +58,14 @@ defineProps<{
 
 .article-grid-item {
   opacity: 0;
-  animation: cardFadeIn 0.5s ease-out forwards;
+  transform: translateY(12px);
+  transition: none;
   break-inside: avoid;
   margin-bottom: 1.5rem;
+}
+
+.article-grid-item--visible {
+  animation: cardFadeIn 0.5s ease-out forwards;
 }
 
 @keyframes cardFadeIn {

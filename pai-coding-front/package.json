@@ -14,6 +14,10 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/noto-sans-sc": "^5.2.9",
+    "@fontsource/noto-serif-sc": "^5.2.8",
+    "@fontsource/zcool-qingke-huangyou": "^5.2.8",
     "@kangc/v-md-editor": "^2.3.18",
     "autoprefixer": "^10.4.19",
     "axios": "^1.7.2",

@@ -1,5 +1,7 @@
 import './assets/main.css'
-import '@fontsource/noto-serif-sc' // 思源宋体 - 首页标题字体
+import '@fontsource/jetbrains-mono'
+import '@fontsource/noto-sans-sc'
+import '@fontsource/zcool-qingke-huangyou'
 
 import { createApp, defineComponent, h } from 'vue'
 import { createPinia } from 'pinia'
@@ -7,10 +9,12 @@ import ElementPlus  from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 // 导入css样式
 import 'element-plus/dist/index.css'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./index.css"
 
 import App from './App.vue'
 import router from './router'
+import { useThemeStore } from '@/stores/theme'
 
 
 // markdown插件
@@ -27,6 +31,9 @@ const app = createApp(App)
 app.component('H2', H2)
 
 app.use(createPinia())
+
+// 初始化主题 Store（应用 localStorage 中的主题设置）
+useThemeStore()
 app.use(router)
 
 // ....
