@@ -32,6 +32,7 @@
       class="edit-editor"
       :editor-id="'id'"
       v-model="text"
+      :theme="editorTheme"
       @onUploadImg="onUploadImg"
       :toolbars-exclude="['prettier', 'github']"
     ></MdEditor>
@@ -186,10 +187,11 @@
 
 import { MdEditor } from 'md-editor-v3'
 import '@/assets/style.css'
-import { onMounted, provide, reactive, ref } from 'vue'
+import { computed, onMounted, provide, reactive, ref } from 'vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 const text = ref('')
 import { useGlobalStore } from '@/stores/global'
+import { useThemeStore } from '@/stores/theme'
 import Footer from '@/components/layout/Footer.vue'
 import {
   type ComponentSize,
@@ -212,8 +214,10 @@ import { DocumentSourceTypeEnum } from '@/constants/DocumentSourceTypeEnumConsta
 import { useRoute, useRouter } from 'vue-router'
 import type { ArticleEditResponseType } from '@/http/ResponseTypes/ArticleEditResponseType'
 const globalStore = useGlobalStore()
+const themeStore = useThemeStore()
 
 const global = globalStore.global
+const editorTheme = computed(() => themeStore.isDark ? 'dark' : 'light')
 const router = useRouter()
 const route = useRoute()
 
@@ -563,6 +567,15 @@ const getCategories = (visible: boolean) => {
 
 .dark .edit-header-label {
   color: var(--pai-color-3-black, #e1e3eb);
+}
+
+.dark .edit-wrap {
+  background: var(--pai-bg-dark-1, #0f111a);
+}
+
+.dark .edit-header-bar {
+  background: var(--pai-bg-dark-1, #0f111a);
+  border-bottom-color: var(--pai-border-color-1, #2a2d3a);
 }
 
 </style>

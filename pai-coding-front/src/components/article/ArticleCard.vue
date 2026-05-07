@@ -81,7 +81,7 @@ const clickArticle = () =>{
       router.push(`/column/${res.data.result.columnId}/${res.data.result.section}`)
     }).catch(err=>{
       messageTip("获取专栏信息失败", "error")
-      console.log(err)
+      console.error('ArticleCard error:', err)
     })
   }else{
     router.push('/article/detail/'+props.article.articleId)

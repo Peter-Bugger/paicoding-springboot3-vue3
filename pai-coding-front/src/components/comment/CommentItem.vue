@@ -69,16 +69,16 @@ defineProps<{
 }
 
 .comment-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
 }
 
 .comment-avatar--small {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
 }
 
 .comment-body {
@@ -118,7 +118,7 @@ defineProps<{
 
 /* ── Replies ── */
 .comment-replies {
-  margin-left: 3.25rem;
+  margin-left: 3rem;
   margin-top: 0.75rem;
   padding: 0.5rem 0;
 }

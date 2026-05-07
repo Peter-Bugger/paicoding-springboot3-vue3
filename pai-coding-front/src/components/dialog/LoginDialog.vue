@@ -149,7 +149,7 @@ let fetchCodeCnt = 0
 
 function buildConnect() {
   if (sseSource != null) {
-    try { sseSource.close() } catch (e) { console.log("关闭上次的连接", e) }
+    try { sseSource.close() } catch (e) { console.error("关闭SSE连接失败", e) }
     try { window.clearInterval(intHook) } catch (e) { /* empty */ }
   }
 

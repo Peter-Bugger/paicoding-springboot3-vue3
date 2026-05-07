@@ -1,7 +1,9 @@
 package com.github.paicoding.forum.web.global;
 
 import com.github.paicoding.forum.api.model.exception.ForumAdviceException;
+import com.github.paicoding.forum.api.model.exception.ForumException;
 import com.github.paicoding.forum.api.model.vo.ResVo;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +18,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = ForumAdviceException.class)
     public ResVo<String> handleForumAdviceException(ForumAdviceException e) {
+        return ResVo.fail(e.getStatus());
+    }
+
+    @ExceptionHandler(value = ForumException.class)
+    public ResVo<String> handleForumException(ForumException e, HttpServletResponse response) {
+        int httpStatus = (e.getStatus().getCode() / 1000) % 1000;
+        if (httpStatus >= 100 && httpStatus < 600) {
+            response.setStatus(httpStatus);
+        }
         return ResVo.fail(e.getStatus());
     }
 }

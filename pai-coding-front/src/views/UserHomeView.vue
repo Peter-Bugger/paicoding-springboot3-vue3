@@ -47,7 +47,7 @@ onMounted(() => {
       Object.assign(userInfo.value, res.data.result)
     })
     .catch((err) => {
-      console.log(err)
+      console.error('UserHomeView error:', err)
     })
 })
 </script>

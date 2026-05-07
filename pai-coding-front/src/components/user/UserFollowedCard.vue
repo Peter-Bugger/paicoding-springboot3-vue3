@@ -53,7 +53,7 @@ const follow = () => {
       userFollowed.value = !userFollowed.value
     })
     .catch((err) => {
-      console.log(err)
+      console.error('UserFollowedCard error:', err)
     })
     .finally(() => {
       btnDisabled.value = false

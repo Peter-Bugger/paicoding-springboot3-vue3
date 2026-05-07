@@ -1097,3 +1097,121 @@ button:focus {
 .dark .article-content h1 {
   border-bottom-color: var(--pai-border-color-1, #2a2d3a);
 }
+
+/* =============================
+   消息通知列表
+   ============================= */
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--pai-bg-light-2, #eef1f7);
+}
+
+.notification:last-child {
+  border-bottom: none;
+}
+
+.notification-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.notification-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-content {
+  font-size: 0.88rem;
+  color: var(--pai-color-3-black, #1e2029);
+  line-height: 1.6;
+  margin-bottom: 0.35rem;
+}
+
+.notification-content .profile {
+  display: inline;
+}
+
+.notification-content .name {
+  font-weight: 600;
+  color: var(--pai-color-4-gray, #484d5e);
+  margin-right: 0.25rem;
+}
+
+.notification-content .name:hover {
+  color: var(--pai-brand-1-normal);
+}
+
+.notification-content .title-article {
+  color: var(--pai-brand-1-normal);
+  margin-left: 0.2rem;
+}
+
+.notification-content .title-article:hover {
+  color: var(--pai-brand-2-hover);
+}
+
+.notification-comment {
+  font-size: 0.82rem;
+  color: var(--pai-color-3-gray, #6b7084);
+  background: var(--pai-bg-light-1, #f4f6fa);
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 0.35rem;
+  line-height: 1.5;
+}
+
+.notification-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--pai-color-999-gray, #8c8f9c);
+}
+
+.notification-action {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.notification-action-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--pai-color-999-gray, #8c8f9c);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.notification-action-item:hover {
+  color: var(--pai-brand-1-normal);
+}
+
+.read-comment-praise {
+  width: 14px;
+  height: 14px;
+}
+
+.action-text {
+  font-size: 0.78rem;
+}
+
+/* 暗色模式 */
+.dark .notification {
+  border-bottom-color: var(--pai-border-color-1, #2a2d3a);
+}
+
+.dark .notification-comment {
+  background: var(--pai-bg-light-2, #1e2030);
+  color: var(--pai-color-4-gray, #8c8f9c);
+}

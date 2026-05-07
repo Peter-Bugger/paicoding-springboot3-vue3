@@ -124,7 +124,7 @@ const getArticles = () => {
       currentArticlesPage.value = Number(res.data.result.current)
       totalArticlesPage.value = Number(res.data.result.pages)
     })
-    .catch((err) => { console.log(err) })
+    .catch((err) => { console.error(err) })
 }
 
 const onArticlesCurrentPageChange = (newCurrentPage: number) => {
@@ -153,7 +153,7 @@ const getHistoryArticles = () => {
       currentHistoryArticlesPage.value = Number(res.data.result.current)
       totalHistoryArticlesPage.value = Number(res.data.result.pages)
     })
-    .catch((err) => { console.log(err) })
+    .catch((err) => { console.error(err) })
 }
 
 const onHistoryArticlesCurrentPageChange = (newCurrentPage: number) => {
@@ -182,7 +182,7 @@ const getStarsArticles = () => {
       currentStarArticlesPage.value = Number(res.data.result.current)
       totalStarArticlesPage.value = Number(res.data.result.pages)
     })
-    .catch((err) => { console.log(err) })
+    .catch((err) => { console.error(err) })
 }
 
 const onStarArticlesCurrentPageChange = (newCurrentPage: number) => {
@@ -211,7 +211,7 @@ const getFollowUsers = () => {
       currentFollowersPage.value = Number(res.data.result.current)
       totalFollowersPage.value = Number(res.data.result.pages)
     })
-    .catch((err) => { console.log(err) })
+    .catch((err) => { console.error(err) })
 }
 
 const onFollowersCurrentPageChange = (newCurrentPage: number) => {
@@ -240,7 +240,7 @@ const getFans = () => {
       currentFansPage.value = Number(res.data.result.current)
       totalFansPage.value = Number(res.data.result.pages)
     })
-    .catch((err) => { console.log(err) })
+    .catch((err) => { console.error(err) })
 }
 
 const onFansCurrentPageChange = (newCurrentPage: number) => {

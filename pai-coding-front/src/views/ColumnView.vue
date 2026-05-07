@@ -46,7 +46,7 @@ onMounted(() => {
       }
     })
     .catch((error) => {
-      console.log(error)
+      console.error('ColumnView error:', error)
     })
 })
 
