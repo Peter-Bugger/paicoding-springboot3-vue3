@@ -97,3 +97,8 @@ export interface PageListVo<T> {
   list: T[]
   hasMore: boolean
 }
+
+// 消息列表响应（含目标用户信息）
+export interface MessagePageListVo extends PageListVo<MessageItem> {
+  targetUser: SimpleUserInfo | null
+}

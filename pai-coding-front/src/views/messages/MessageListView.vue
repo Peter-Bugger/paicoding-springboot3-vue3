@@ -186,7 +186,10 @@ const hasMoreMessages = ref(true)
 const chatPage = ref(1)
 const autoScroll = ref(true)
 
-// 目标用户信息（从会话数据中获取，backend 保证 targetUser 为对方）
+// 后端 API 返回的对方用户信息（来自 listMessages 响应的 targetUser 字段）
+const apiResolvedTargetUser = ref<SimpleUserInfo | null>(null)
+
+// 目标用户信息（多级兜底：store会话列表 → pendingTargetUserId → API返回 → 消息推断）
 const targetUser = computed<SimpleUserInfo>(() => {
   const curId = currentUserId.value
   const conv = conversations.value.find(c => c.conversationId === selectedId.value)
@@ -200,7 +203,11 @@ const targetUser = computed<SimpleUserInfo>(() => {
       photo: 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
     }
   }
-  // 兜底：从已加载消息中推断对方（比纯 fallback 更准确）
+  // 后端 API 直接返回的 targetUser（最可靠的非 store 来源）
+  if (apiResolvedTargetUser.value && apiResolvedTargetUser.value.userId > 0 && apiResolvedTargetUser.value.userId !== curId) {
+    return apiResolvedTargetUser.value
+  }
+  // 兜底：从已加载消息中推断对方
   const otherMsg = messages.value.find(m => m.fromUserId !== curId)
   if (otherMsg) {
     return {
@@ -227,6 +234,14 @@ async function loadMessages() {
     messages.value = data.list || []
     hasMoreMessages.value = data.hasMore || false
     chatPage.value = 1
+    // 提取后端返回的对方用户信息（解决前端 targetUser 兜底解析失败的问题）
+    if (data.targetUser && data.targetUser.userId > 0) {
+      apiResolvedTargetUser.value = {
+        userId: Number(data.targetUser.userId),
+        userName: data.targetUser.userName || '用户',
+        photo: data.targetUser.photo || 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
+      }
+    }
     await scrollToBottom()
   } catch (e) {
     console.error('Failed to load messages:', e)

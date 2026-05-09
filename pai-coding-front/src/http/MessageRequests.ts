@@ -7,6 +7,7 @@ import type {
   StartConvRes,
   ConversationItem,
   MessageItem,
+  MessagePageListVo,
   UnreadCountRes,
   PageListVo
 } from '@/http/ResponseTypes/MsgTypes'
@@ -45,7 +46,7 @@ export function fetchConversations(page: number = 1, pageSize: number = 20) {
  * 获取会话历史消息（分页）
  */
 export function fetchMessages(conversationId: number, page: number = 1, pageSize: number = 20) {
-  return doGet<CommonResponse<PageListVo<MessageItem>>>(MSG_MESSAGES_URL + `/${conversationId}`, { page, pageSize })
+  return doGet<CommonResponse<MessagePageListVo>>(MSG_MESSAGES_URL + `/${conversationId}`, { page, pageSize })
 }
 
 /**
