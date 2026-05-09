@@ -72,6 +72,13 @@
               </svg>
             </a>
 
+            <a class="header-notice" href="/messages">
+              <span v-if="messageStore.unreadTotal > 0" class="notice-badge">{{ messageStore.unreadTotal > 99 ? '99+' : messageStore.unreadTotal }}</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </a>
+
             <el-dropdown :hide-on-click="false" trigger="click">
               <div class="header-avatar">
                 <img
@@ -109,6 +116,7 @@ import { ArrowDownBold } from '@element-plus/icons-vue'
 import { LOGOUT_URL } from '@/http/URL'
 import { defineOptions } from 'vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import { useMessageStore } from '@/stores/message'
 
 defineOptions({ name: 'AppHeaderBar' })
 
@@ -116,6 +124,7 @@ const router = useRouter()
 const route = useRoute()
 const globalStore = useGlobalStore()
 const global = globalStore.global
+const messageStore = useMessageStore()
 
 const activeTab = ref('/')
 const scrolled = ref(false)

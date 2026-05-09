@@ -49,6 +49,11 @@ public class GlobalVo {
     private Integer msgNum;
 
     /**
+     * 私信未读消息数量
+     */
+    private Integer privateMsgNum;
+
+    /**
      * 在线用户人数
      */
     private Integer onlineCnt;

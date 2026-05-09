@@ -54,6 +54,7 @@ export interface GlobalResponse {
   isLogin: boolean;
   user: UserInfo; // 根据实际情况替换 `any` 为具体的用户类型
   msgNum: number | null;
+  privateMsgNum: number | null;
   onlineCnt: number;
   currentDomain: string;
   ogp: Ogp[];
@@ -110,6 +111,7 @@ export const defaultGlobalResponse: GlobalResponse = {
     userName: '',
   },
   msgNum: null,
+  privateMsgNum: null,
   onlineCnt: 0,
   currentDomain: '',
   ogp: [],

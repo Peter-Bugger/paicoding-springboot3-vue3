@@ -117,6 +117,13 @@ const router = createRouter({
       path: '/notice/:noticeType',
       name: "notice",
       component: () => import('@/views/NoticeView.vue'),
+    },
+    // 私信消息页面（支持两栏布局：桌面端左侧列表右侧聊天，移动端独立页面）
+    {
+      path: '/messages/:conversationId?',
+      name: 'messages',
+      component: () => import('@/views/messages/MessageListView.vue'),
+      meta: { loginRequired: true }
     }
   ]
 })

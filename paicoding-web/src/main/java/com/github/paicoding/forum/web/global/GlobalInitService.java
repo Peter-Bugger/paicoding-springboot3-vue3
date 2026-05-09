@@ -7,6 +7,7 @@ import com.github.paicoding.forum.api.model.vo.seo.Seo;
 import com.github.paicoding.forum.api.model.vo.user.dto.BaseUserInfoDTO;
 import com.github.paicoding.forum.core.util.NumUtil;
 import com.github.paicoding.forum.core.util.SessionUtil;
+import com.github.paicoding.forum.service.msg.service.MsgService;
 import com.github.paicoding.forum.service.notify.service.NotifyService;
 import com.github.paicoding.forum.service.sitemap.service.SitemapService;
 import com.github.paicoding.forum.service.statistics.service.statistic.UserStatisticService;
@@ -45,6 +46,9 @@ public class GlobalInitService {
     private NotifyService notifyService;
 
     @Resource
+    private MsgService msgService;
+
+    @Resource
     private SeoInjectService seoInjectService;
 
     @Resource
@@ -79,6 +83,7 @@ public class GlobalInitService {
                 vo.setIsLogin(true);
                 vo.setUser(ReqInfoContext.getReqInfo().getUser());
                 vo.setMsgNum(ReqInfoContext.getReqInfo().getMsgNum());
+                vo.setPrivateMsgNum(msgService.queryUnreadTotal(ReqInfoContext.getReqInfo().getUserId()));
             } else {
                 vo.setIsLogin(false);
             }

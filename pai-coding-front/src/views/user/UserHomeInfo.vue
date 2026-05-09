@@ -51,6 +51,12 @@
           <span class="user-profile-bio-edit-btn" @click="editInfoDialogVisible = true">去编辑 ›</span>
         </div>
       </div>
+
+      <div class="user-profile-actions" v-if="global.isLogin && !isOwnProfile">
+        <el-button type="primary" size="small" @click="sendPrivateMsg">
+          发私信
+        </el-button>
+      </div>
     </div>
 
     <el-dialog
@@ -111,23 +117,28 @@
 import type { UserHomeInfoResponseType } from '@/http/ResponseTypes/UserHomeInfoResponseType'
 import { useGlobalStore } from '@/stores/global'
 import { Edit } from '@element-plus/icons-vue'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { ComponentSize, FormInstance, FormRules } from 'element-plus'
 import { doFilePost, doPost } from '@/http/BackendRequests'
 import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
 import { FILE_UPLOAD_URL, USER_INFO_SAVE_URL } from '@/http/URL'
 import { messageTip } from '@/util/utils'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { startConversation } from '@/http/MessageRequests'
+import { useMessageStore } from '@/stores/message'
 
 const globalStore = useGlobalStore()
 const global = globalStore.global
+const messageStore = useMessageStore()
 const route = useRoute()
+const router = useRouter()
 
 const props = defineProps<{
   vo: UserHomeInfoResponseType
 }>()
 
 const userId = route.params.userId
+const isOwnProfile = computed(() => global.isLogin && global.user && String(global.user.userId) === String(userId))
 
 const editInfoDialogVisible = ref(false)
 
@@ -234,6 +245,27 @@ const saveUserInfo = async () => {
       isSaveDisabled.value = false
     }
   })
+}
+
+const sendPrivateMsg = async () => {
+  if (!global.isLogin) {
+    messageTip('请先登录', 'warning')
+    return
+  }
+  const targetUserId = Number(userId)
+  if (!targetUserId) {
+    messageTip('用户ID无效', 'warning')
+    return
+  }
+  try {
+    const res = await startConversation({ toUserId: targetUserId })
+    const conversationId = res.data.result.conversationId
+    messageStore.setPendingTargetUserId(targetUserId)
+    router.push(`/messages/${conversationId}`)
+  } catch (e) {
+    console.error('Failed to start conversation:', e)
+    messageTip('发起私信失败', 'error')
+  }
 }
 </script>
 
@@ -395,6 +427,12 @@ const saveUserInfo = async () => {
 
 .user-profile-bio-edit-btn:hover {
   opacity: 0.8;
+}
+
+.user-profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0 0;
 }
 
 /* Edit Dialog */

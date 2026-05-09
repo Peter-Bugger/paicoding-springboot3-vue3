@@ -7,6 +7,12 @@
         <span>{{praiseCnt > 0 ? praiseCnt : '点赞'}}</span>
       </el-button>
     </div>
+    <div v-if="global.isLogin && comment.userId && Number(comment.userId) !== Number(global.user?.userId)" class="comment-action" @click="sendPrivateMsg">
+      <el-button text class="comment-action-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>私信</span>
+      </el-button>
+    </div>
     <div class="comment-action" @click="replyStatusChange">
       <el-button text class="comment-action-btn">
         <svg width="15" height="15"><use xlink:href="#icon-comment"></use></svg>
@@ -34,6 +40,7 @@
 <script setup lang="ts">
 import type { ArticleDetailResponse } from '@/http/ResponseTypes/ArticleDetailResponseType'
 import { inject, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGlobalStore } from '@/stores/global'
 import { doGet, doPost } from '@/http/BackendRequests'
 import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
@@ -41,10 +48,14 @@ import { COMMENT_LIKE_URL, COMMENT_SUBMIT_URL } from '@/http/URL'
 import { OperateTypeEnum } from '@/constants/OperateTypeConstants'
 import { messageTip } from '@/util/utils'
 import type { ArticleType } from '@/http/ResponseTypes/ArticleType/ArticleType'
+import { startConversation } from '@/http/MessageRequests'
+import { useMessageStore } from '@/stores/message'
 import type { ArticleCommentType } from '@/http/ResponseTypes/CommentType/ArticleCommentType'
 
 const globalStore = useGlobalStore()
 const global = globalStore.global
+const messageStore = useMessageStore()
+const router = useRouter()
 const showLoginDialog = inject<() => void>('loginDialogClicked')
 
 const props = defineProps<{
@@ -112,6 +123,27 @@ const commentSubmit = () => {
   }).catch(() => {
     messageTip('评论失败', 'error')
   })
+}
+
+const sendPrivateMsg = async () => {
+  if (!global.isLogin) {
+    if (showLoginDialog) showLoginDialog()
+    return
+  }
+  const targetUserId = Number(props.comment.userId)
+  if (!targetUserId) {
+    messageTip('用户ID无效', 'warning')
+    return
+  }
+  try {
+    const res = await startConversation({ toUserId: targetUserId })
+    const conversationId = res.data.result.conversationId
+    messageStore.setPendingTargetUserId(targetUserId)
+    router.push(`/messages/${conversationId}`)
+  } catch (e) {
+    console.error('Failed to start conversation:', e)
+    messageTip('发起私信失败', 'error')
+  }
 }
 </script>
 

@@ -97,6 +97,16 @@ export const GLOBAL_INFO_URL = "/api/global/info"
 // ============= 前端跳转的地址 =============
 export const WRITE_ARTICLE_URL = "/article/edit"
 
+// ============= 私信消息相关的请求 =============
+// 发送私信
+export const MSG_SEND_URL = "/msg/api/send"
+export const MSG_START_URL = "/msg/api/start"
+export const MSG_CONVERSATIONS_URL = "/msg/api/conversations"
+export const MSG_MESSAGES_URL = "/msg/api/messages"
+export const MSG_READ_URL = "/msg/api/read"
+export const MSG_UNREAD_COUNT_URL = "/msg/api/unread-count"
+export const MSG_CLEAR_CONVERSATION_URL = "/msg/api/conversations"
+
 // ============= 额外的后端工具服务地址 =============
 // excel处理地址
 export const EXCEL_PROCESS_URL = "/tools/transfer"
