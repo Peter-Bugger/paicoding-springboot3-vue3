@@ -3,6 +3,7 @@ package com.github.paicoding.forum.service.msg.service;
 import com.github.paicoding.forum.api.model.vo.PageListVo;
 import com.github.paicoding.forum.api.model.vo.PageParam;
 import com.github.paicoding.forum.api.model.vo.msg.ConversationVO;
+import com.github.paicoding.forum.api.model.vo.msg.MessageListVO;
 import com.github.paicoding.forum.api.model.vo.msg.MessageVO;
 import com.github.paicoding.forum.api.model.vo.msg.SendMsgReq;
 import com.github.paicoding.forum.api.model.vo.msg.SendMsgRes;
@@ -41,7 +42,7 @@ public interface MsgService {
      * @param page           分页参数
      * @return 消息列表
      */
-    PageListVo<MessageVO> listMessages(Long userId, Long conversationId, PageParam page);
+    MessageListVO listMessages(Long userId, Long conversationId, PageParam page);
 
     /**
      * 标记会话为已读

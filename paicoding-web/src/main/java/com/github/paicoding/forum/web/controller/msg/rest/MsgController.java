@@ -100,11 +100,11 @@ public class MsgController {
     }
 
     /**
-     * 获取会话历史消息
+     * 获取会话历史消息（含对方用户信息，解决前端 targetUser 无法确定导致发送失败的问题）
      * GET /api/msg/messages/{conversationId}?page=1&pageSize=20
      */
     @GetMapping(path = "messages/{conversationId}")
-    public ResVo<PageListVo<MessageVO>> listMessages(
+    public ResVo<MessageListVO> listMessages(
             @PathVariable("conversationId") Long conversationId,
             @RequestParam(name = "page", defaultValue = "1") Long page,
             @RequestParam(name = "pageSize", defaultValue = "20") Long pageSize) {
@@ -112,7 +112,7 @@ public class MsgController {
         PageParam pageParam = PageParam.newPageInstance(page, pageSize);
 
         try {
-            PageListVo<MessageVO> result = msgService.listMessages(userId, conversationId, pageParam);
+            MessageListVO result = msgService.listMessages(userId, conversationId, pageParam);
             return ResVo.ok(result);
         } catch (IllegalArgumentException e) {
             if ("非会话成员，无权查看".equals(e.getMessage())) {

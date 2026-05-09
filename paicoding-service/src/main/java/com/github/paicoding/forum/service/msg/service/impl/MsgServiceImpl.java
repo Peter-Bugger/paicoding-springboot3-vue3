@@ -3,6 +3,7 @@ package com.github.paicoding.forum.service.msg.service.impl;
 import com.github.paicoding.forum.api.model.vo.PageListVo;
 import com.github.paicoding.forum.api.model.vo.PageParam;
 import com.github.paicoding.forum.api.model.vo.msg.ConversationVO;
+import com.github.paicoding.forum.api.model.vo.msg.MessageListVO;
 import com.github.paicoding.forum.api.model.vo.msg.MessageVO;
 import com.github.paicoding.forum.api.model.vo.msg.SendMsgReq;
 import com.github.paicoding.forum.api.model.vo.msg.SendMsgRes;
@@ -233,7 +234,7 @@ public class MsgServiceImpl implements MsgService {
     }
 
     @Override
-    public PageListVo<MessageVO> listMessages(Long userId, Long conversationId, PageParam page) {
+    public MessageListVO listMessages(Long userId, Long conversationId, PageParam page) {
         // 1. 校验会话存在
         ConversationDO conv = conversationDAO.getById(conversationId);
         Assert.notNull(conv, "会话不存在");
@@ -299,7 +300,35 @@ public class MsgServiceImpl implements MsgService {
             return vo;
         }).collect(Collectors.toList());
 
-        return PageListVo.newVo(voList, page.getPageSize());
+        // 7. 查询对方用户信息（解决前端 targetUser 兜底解析失败的问题）
+        BaseUserInfoDTO targetUser = resolveTargetUser(userId, conversationId);
+
+        MessageListVO result = new MessageListVO();
+        result.setList(voList);
+        result.setHasMore(voList.size() == page.getPageSize());
+        result.setTargetUser(targetUser);
+        return result;
+    }
+
+    /**
+     * 解析会话的对方用户信息
+     */
+    private BaseUserInfoDTO resolveTargetUser(Long userId, Long conversationId) {
+        List<ConversationMemberDO> allMembers = conversationMemberDAO.lambdaQuery()
+                .eq(ConversationMemberDO::getConversationId, conversationId)
+                .eq(ConversationMemberDO::getIsDeleted, 0)
+                .list();
+
+        Long otherUserId = allMembers.stream()
+                .filter(m -> !m.getUserId().equals(userId))
+                .map(ConversationMemberDO::getUserId)
+                .findFirst()
+                .orElse(null);
+
+        if (otherUserId != null) {
+            return userService.queryBasicUserInfo(otherUserId);
+        }
+        return null;
     }
 
     @Override
