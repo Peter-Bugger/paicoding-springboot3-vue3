@@ -185,18 +185,8 @@ const sending = ref(false)
 const hasMoreMessages = ref(true)
 const chatPage = ref(1)
 const autoScroll = ref(true)
-const resolvedOtherUserId = ref(0)
 
-// 从已加载消息中推断对方 userId
-function resolveOtherUserId() {
-  if (resolvedOtherUserId.value > 0) return
-  const otherMsg = messages.value.find(m => m.fromUserId !== currentUserId.value)
-  if (otherMsg) {
-    resolvedOtherUserId.value = otherMsg.fromUserId
-  }
-}
-
-// 目标用户信息
+// 目标用户信息（从会话数据中获取，backend 保证 targetUser 为对方）
 const targetUser = computed<SimpleUserInfo>(() => {
   const curId = currentUserId.value
   const conv = conversations.value.find(c => c.conversationId === selectedId.value)
@@ -210,11 +200,13 @@ const targetUser = computed<SimpleUserInfo>(() => {
       photo: 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
     }
   }
-  if (resolvedOtherUserId.value > 0 && resolvedOtherUserId.value !== curId) {
+  // 兜底：从已加载消息中推断对方（比纯 fallback 更准确）
+  const otherMsg = messages.value.find(m => m.fromUserId !== curId)
+  if (otherMsg) {
     return {
-      userId: resolvedOtherUserId.value,
-      userName: '用户',
-      photo: 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
+      userId: otherMsg.fromUserId,
+      userName: otherMsg.fromUserName || '用户',
+      photo: otherMsg.fromUserPhoto || 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
     }
   }
   return {
@@ -235,7 +227,6 @@ async function loadMessages() {
     messages.value = data.list || []
     hasMoreMessages.value = data.hasMore || false
     chatPage.value = 1
-    resolveOtherUserId()
     await scrollToBottom()
   } catch (e) {
     console.error('Failed to load messages:', e)
@@ -255,7 +246,6 @@ async function loadOlderMessages() {
     messages.value.unshift(...(data.list || []))
     hasMoreMessages.value = data.hasMore || false
     chatPage.value = nextPage
-    resolveOtherUserId()
   } catch (e) {
     console.error('Failed to load older messages:', e)
     messageTip('加载失败', 'error')
@@ -280,12 +270,8 @@ async function handleSend(content: string) {
     return
   }
 
-  let toUserId = targetUser.value.userId
-  if (toUserId <= 0 || toUserId === currentUserId.value) {
-    resolveOtherUserId()
-    toUserId = resolvedOtherUserId.value
-  }
-  if (toUserId <= 0 || toUserId === currentUserId.value) {
+  const toUserId = targetUser.value.userId
+  if (!toUserId || toUserId === currentUserId.value) {
     messageTip('无法确定接收用户', 'error')
     return
   }
@@ -419,7 +405,6 @@ watch(selectedId, async (newId) => {
   chatPage.value = 1
   hasMoreMessages.value = true
   loadingMessages.value = true
-  resolvedOtherUserId.value = 0
   await loadMessages()
   await markRead()
 })

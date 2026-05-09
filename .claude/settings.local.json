@@ -40,7 +40,13 @@
       "Bash(wget *)",
       "Bash(ls *)",
       "Bash(cd * && mvn *)",
-      "Bash(cd * && npm run *)"
+      "Bash(cd * && npm run *)",
+      "Bash(mvn *)",
+      "Bash(npm -s run type-check)",
+      "Bash(npm -s run build-only)",
+      "Bash(npm -s run dev -- --host 0.0.0.0 --port 5173)",
+      "Bash(python3)",
+      "Bash(npx vue-tsc *)"
     ]
   }
 }

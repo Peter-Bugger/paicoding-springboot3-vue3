@@ -20,8 +20,11 @@ import java.util.Date;
 @Component
 public class MsgPushHelper {
 
-    /** userId → sessionId 映射，由 MsgHandshakeInterceptor 在握手时填充，用于 WebSocket 向指定用户推送消息 */
-    public static final java.util.concurrent.ConcurrentHashMap<Long, String> USER_SESSION_MAP = new java.util.concurrent.ConcurrentHashMap<>();
+    /** userId → sessionId 集合映射，由 MsgHandshakeInterceptor 在握手时填充，用于 WebSocket 向指定用户推送消息 */
+    public static final java.util.concurrent.ConcurrentHashMap<Long, java.util.Set<String>> USER_SESSION_MAP = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** sessionId → userId 反向索引，用于断开连接时清理 */
+    public static final java.util.concurrent.ConcurrentHashMap<String, Long> SESSION_USER_MAP = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
@@ -49,11 +52,13 @@ public class MsgPushHelper {
             payload.setCreateTime(msg.getCreateTime() != null ? msg.getCreateTime() : new Date());
 
             WsMsgPushVO pushVO = WsMsgPushVO.newMessage(payload);
-            // 通过 userId→session 映射发送到用户私有通道
-            String userSession = USER_SESSION_MAP.get(targetUserId);
-            if (userSession != null) {
-                simpMessagingTemplate.convertAndSendToUser(userSession, "/msg/new", pushVO);
-                log.info("WS推送新消息: userId={}, session={}, conversationId={}", targetUserId, userSession, msg.getConversationId());
+            // 通过 userId→sessions 映射发送到用户私有通道（同账号多端同时在线时需要广播）
+            var sessions = USER_SESSION_MAP.get(targetUserId);
+            if (sessions != null && !sessions.isEmpty()) {
+                for (String userSession : sessions) {
+                    simpMessagingTemplate.convertAndSendToUser(userSession, "/msg/new", pushVO);
+                    log.info("WS推送新消息: userId={}, session={}, conversationId={}", targetUserId, userSession, msg.getConversationId());
+                }
             } else {
                 log.info("WS推送跳过: userId={} 未连接，conversationId={}", targetUserId, msg.getConversationId());
             }
@@ -79,10 +84,12 @@ public class MsgPushHelper {
             payload.setReadTime(new Date());
 
             WsMsgPushVO pushVO = WsMsgPushVO.readStatus(payload);
-            String userSession = USER_SESSION_MAP.get(senderUserId);
-            if (userSession != null) {
-                simpMessagingTemplate.convertAndSendToUser(userSession, "/msg/read", pushVO);
-                log.info("WS推送已读状态: senderId={}, session={}, conversationId={}", senderUserId, userSession, conversationId);
+            var sessions = USER_SESSION_MAP.get(senderUserId);
+            if (sessions != null && !sessions.isEmpty()) {
+                for (String userSession : sessions) {
+                    simpMessagingTemplate.convertAndSendToUser(userSession, "/msg/read", pushVO);
+                    log.info("WS推送已读状态: senderId={}, session={}, conversationId={}", senderUserId, userSession, conversationId);
+                }
             } else {
                 log.info("WS推送已读跳过: senderId={} 未连接，conversationId={}", senderUserId, conversationId);
             }

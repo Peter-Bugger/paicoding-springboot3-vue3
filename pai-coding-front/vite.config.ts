@@ -26,6 +26,13 @@ export default defineConfig({
         target: 'http://127.0.0.1:8081',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      // WebSocket: ws://localhost:5173/ws/api/msg/{session} -> ws://127.0.0.1:8081/msg/{session}
+      '/ws/api': {
+        target: 'ws://127.0.0.1:8081',
+        ws: true,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ws\/api/, '')
       }
     }
   }

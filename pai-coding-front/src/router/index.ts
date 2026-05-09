@@ -129,18 +129,20 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-    // console.log(to)
-    // console.log(from)
-  if(to.meta.loginRequired) {
-    const globalStore = await getGlobalStore()
-    await checkLoginStatus(globalStore)
-    if(!globalStore.global.isLogin){
-      messageTip("请先登录", "warning")
-      await router.replace("/")
-    }else{
-      next()
-    }
+  if (!to.meta.loginRequired) {
+    next()
+    return
   }
+
+  const globalStore = await getGlobalStore()
+  await checkLoginStatus(globalStore)
+
+  if (!globalStore.global.isLogin) {
+    messageTip('请先登录', 'warning')
+    next('/')
+    return
+  }
+
   next()
 })
 

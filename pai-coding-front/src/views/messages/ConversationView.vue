@@ -76,25 +76,14 @@ const sending = ref(false)
 const hasMoreMessages = ref(true)
 const currentPage = ref(1)
 const autoScroll = ref(true)
-const resolvedOtherUserId = ref(0)
 
-// 从消息中推断对方的 userId（接收方未经过发起流程时使用）
-function resolveOtherUserId() {
-  if (resolvedOtherUserId.value > 0) return
-  const otherMsg = messages.value.find(m => m.fromUserId !== currentUserId.value)
-  if (otherMsg) {
-    resolvedOtherUserId.value = otherMsg.fromUserId
-  }
-}
-
-// 从 Store 中查找会话的目标用户信息
+// 目标用户信息（从会话数据中获取，backend 保证 targetUser 为对方）
 const targetUser = computed<SimpleUserInfo>(() => {
   const curId = currentUserId.value
   const conv = messageStore.conversations.find(c => c.conversationId === conversationId.value)
   if (conv?.targetUser && conv.targetUser.userId > 0 && conv.targetUser.userId !== curId) {
     return conv.targetUser
   }
-  // Fallback 1: 使用发起会话时存储的 pendingTargetUserId
   if (messageStore.pendingTargetUserId > 0 && messageStore.pendingTargetUserId !== curId) {
     return {
       userId: messageStore.pendingTargetUserId,
@@ -102,12 +91,13 @@ const targetUser = computed<SimpleUserInfo>(() => {
       photo: 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
     }
   }
-  // Fallback 2: 从已加载的消息中推断对方 userId（接收方场景）
-  if (resolvedOtherUserId.value > 0 && resolvedOtherUserId.value !== curId) {
+  // 兜底：从已加载消息中推断对方（比纯 fallback 更准确）
+  const otherMsg = messages.value.find(m => m.fromUserId !== curId)
+  if (otherMsg) {
     return {
-      userId: resolvedOtherUserId.value,
-      userName: '用户',
-      photo: 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
+      userId: otherMsg.fromUserId,
+      userName: otherMsg.fromUserName || '用户',
+      photo: otherMsg.fromUserPhoto || 'https://static.developers.pub/static/img/logo.b2ff606.jpeg'
     }
   }
   return {
@@ -132,16 +122,25 @@ watch(conversationId, async () => {
   currentPage.value = 1
   hasMoreMessages.value = true
   loadingMessages.value = true
-  resolvedOtherUserId.value = 0
   await loadMessages()
   await markRead()
 })
 
 // 监听 WebSocket 推送的新消息，实时追加到当前会话
 watch(() => messageStore.latestWsMessage, (msg) => {
-  if (!msg || msg.conversationId !== conversationId.value) return
+  if (!msg) return
+  const curConvId = conversationId.value
+  if (msg.conversationId !== curConvId) {
+    console.info('[ConversationView] ignore ws msg (not current conversation)', {
+      curConvId,
+      msgConvId: msg.conversationId,
+      msgId: msg.messageId
+    })
+    return
+  }
   // 避免重复追加（通过 messageId 去重）
   if (messages.value.some(m => m.messageId === msg.messageId)) return
+  console.info('[ConversationView] append ws msg', { curConvId, msgId: msg.messageId })
   messages.value.push(msg)
   if (autoScroll.value) scrollToBottom()
 })
@@ -154,7 +153,6 @@ async function loadMessages() {
     messages.value = data.list || []
     hasMoreMessages.value = data.hasMore || false
     currentPage.value = 1
-    resolveOtherUserId()
     await scrollToBottom()
   } catch (e) {
     console.error('Failed to load messages:', e)
@@ -175,7 +173,6 @@ async function loadOlderMessages() {
     messages.value.unshift(...newItems)
     hasMoreMessages.value = data.hasMore || false
     currentPage.value = nextPage
-    resolveOtherUserId()
   } catch (e) {
     console.error('Failed to load older messages:', e)
     messageTip('加载失败', 'error')
@@ -199,13 +196,8 @@ async function handleSend(content: string) {
     return
   }
 
-  let toUserId = targetUser.value.userId
-  // 安全校验：确保 toUserId 不是自己且有效
-  if (toUserId <= 0 || toUserId === currentUserId.value) {
-    resolveOtherUserId()
-    toUserId = resolvedOtherUserId.value
-  }
-  if (toUserId <= 0 || toUserId === currentUserId.value) {
+  const toUserId = targetUser.value.userId
+  if (!toUserId || toUserId === currentUserId.value) {
     messageTip('无法确定接收用户', 'error')
     return
   }

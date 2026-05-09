@@ -24,9 +24,12 @@ export function connectMessageWs() {
   const session = getCookie('f-session')
   if (_connected || _connecting || !session) return
 
+  // disconnectMessageWs() 会标记 disposed；重新连接时需要复位
+  _disposed = false
   _connecting = true
 
   try {
+    console.info('[MessageWS] connecting', { session, _connected, _connecting, _disposed })
     const socket = new WebSocket(`${WS_URL}/msg/${session}`)
     const client = Stomp.over(socket)
 
@@ -34,10 +37,13 @@ export function connectMessageWs() {
       {},
       () => {
         if (_disposed) {
+          console.info('[MessageWS] connect succeeded but disposed=true; disconnecting')
+          _connecting = false
           try { client.disconnect(() => {}) } catch (_) { /* ignore */ }
           return
         }
 
+        console.info('[MessageWS] connected')
         _connected = true
         _connecting = false
         stompClient = client
@@ -51,19 +57,38 @@ export function connectMessageWs() {
             const push = JSON.parse(message.body) as WsMsgPush
             if (push.type === 'NEW_MESSAGE') {
               const payload = push.payload as WsNewMessagePayload
+              console.info('[MessageWS] new message', {
+                conversationId: payload.conversationId,
+                messageId: payload.messageId,
+                fromUserId: payload.fromUserId
+              })
               const store = useMessageStore()
               store.incrementUnread()
+              const convId = Number(payload.conversationId)
+              const messageId = Number(payload.messageId)
+              const fromUserId = Number(payload.fromUserId)
+
               store.handleNewMessage({
-                conversationId: payload.conversationId,
+                conversationId: convId,
                 content: payload.content,
-                fromUserId: payload.fromUserId,
+                fromUserId,
                 createTime: payload.createTime
               })
-              // 构建完整 MessageItem 供 ConversationView 实时追加
+
+              if (!convId || Number.isNaN(convId)) {
+                console.warn('[MessageWS] invalid conversationId in payload', payload)
+              }
+
+              console.info('[MessageWS] deliver to views', {
+                convId,
+                messageId,
+                fromUserId
+              })
+              // 构建完整 MessageItem 供会话页实时追加
               store.setLatestWsMessage({
-                messageId: payload.messageId,
-                conversationId: payload.conversationId,
-                fromUserId: payload.fromUserId,
+                messageId: Number(payload.messageId),
+                conversationId: convId,
+                fromUserId: Number(payload.fromUserId),
                 fromUserName: payload.fromUserName || '',
                 fromUserPhoto: payload.fromUserPhoto || '',
                 messageType: payload.messageType || 'TEXT',
@@ -75,6 +100,7 @@ export function connectMessageWs() {
                   ? payload.createTime
                   : new Date().toISOString()
               })
+              console.info('[MessageWS] latestWsMessage set', { convId })
             }
           } catch (e) {
             console.error('[MessageWS] Failed to parse new message:', e)
@@ -86,7 +112,13 @@ export function connectMessageWs() {
           try {
             const push = JSON.parse(message.body) as WsMsgPush
             if (push.type === 'READ_STATUS') {
-              // 已读状态预留处理
+              // 后端可能会把 Long 序列化成字符串，统一转 number 避免会话页过滤不命中
+              const payload = push.payload as any
+              console.info('[MessageWS] read status', {
+                conversationId: Number(payload?.conversationId),
+                messageId: Number(payload?.messageId),
+                readByUserId: Number(payload?.readByUserId)
+              })
             }
           } catch (e) {
             console.error('[MessageWS] Failed to parse read status:', e)
@@ -105,7 +137,8 @@ export function connectMessageWs() {
       }
     )
 
-    socket.onclose = () => {
+    socket.onclose = (event: CloseEvent) => {
+      console.info('[MessageWS] socket closed', { code: event.code, reason: event.reason, _disposed })
       if (!_disposed) {
         _connected = false
         _connecting = false
@@ -127,10 +160,12 @@ export function connectMessageWs() {
  * 断开 STOMP WebSocket 连接
  */
 export function disconnectMessageWs() {
+  console.info('[MessageWS] disconnect requested')
   _disposed = true
   if (stompClient) {
     try {
       stompClient.disconnect(() => {
+        console.info('[MessageWS] disconnected')
         _connected = false
         stompClient = null
         try {

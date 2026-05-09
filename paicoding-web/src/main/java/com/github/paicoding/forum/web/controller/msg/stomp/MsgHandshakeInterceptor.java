@@ -25,9 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class MsgHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
 
-    /** userId → sessionId 映射，委托给 MsgPushHelper.USER_SESSION_MAP */
-    private static final ConcurrentHashMap<Long, String> USER_SESSION_MAP =
+    /** userId → sessionId 集合映射，委托给 MsgPushHelper.USER_SESSION_MAP */
+    private static final ConcurrentHashMap<Long, java.util.Set<String>> USER_SESSION_MAP =
             com.github.paicoding.forum.service.msg.helper.MsgPushHelper.USER_SESSION_MAP;
+
+    /** sessionId → userId 反向索引，委托给 MsgPushHelper.SESSION_USER_MAP */
+    private static final ConcurrentHashMap<String, Long> SESSION_USER_MAP =
+            com.github.paicoding.forum.service.msg.helper.MsgPushHelper.SESSION_USER_MAP;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
@@ -45,10 +49,13 @@ public class MsgHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
         attributes.put(MdcUtil.TRACE_ID_KEY, SelfTraceIdGenerator.generate());
         attributes.put(LoginService.SESSION_KEY, reqInfo);
 
-        // 建立 userId → sessionId 映射，供 MsgPushHelper 向指定用户推送消息
+        // 建立 userId → sessionId 映射，供 MsgPushHelper 向指定用户推送消息（同账号多端在线时需要保留多个 session）
         if (reqInfo.getUserId() != null) {
-            USER_SESSION_MAP.put(reqInfo.getUserId(), session);
-            log.info("Msg WS 映射 userId={} → session={}", reqInfo.getUserId(), session);
+            USER_SESSION_MAP.computeIfAbsent(reqInfo.getUserId(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
+                    .add(session);
+            SESSION_USER_MAP.put(session, reqInfo.getUserId());
+            log.info("Msg WS 映射 userId={} → session={} (totalSessions={})", reqInfo.getUserId(), session,
+                    USER_SESSION_MAP.get(reqInfo.getUserId()).size());
         }
         return true;
     }

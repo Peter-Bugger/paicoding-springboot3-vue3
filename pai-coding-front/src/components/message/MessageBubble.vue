@@ -20,11 +20,21 @@
         <span class="message-bubble-text">{{ message.content }}</span>
       </div>
       <span class="message-bubble-time">{{ formatTime(message.createTime) }}</span>
-      <!-- [已修复] 发送失败状态标记 -->
       <span v-if="isOwn && message.status === 'FAILED'" class="message-failed-tag">
         <el-icon :size="14"><WarningFilled /></el-icon> 发送失败
       </span>
     </div>
+
+    <!-- 自己头像（右侧） -->
+    <template v-if="isOwn">
+      <img
+        v-if="message.fromUserPhoto"
+        class="message-avatar"
+        :src="message.fromUserPhoto"
+        :alt="message.fromUserName"
+      />
+      <div v-else class="message-avatar message-avatar--placeholder" />
+    </template>
 
   </div>
 </template>
@@ -58,6 +68,10 @@ function formatTime(dateStr: string): string {
 
 .message-bubble-row--own {
   justify-content: flex-end;
+}
+
+.message-bubble-row--own .message-avatar {
+  margin-top: 0.15rem;
 }
 
 .message-avatar {
