@@ -119,12 +119,14 @@ onMounted(async () => {
     loginDialogClicked.value = true
     return
   }
+  messageStore.setCurrentConversationId(conversationId.value)
   await loadMessages()
   await markRead()
 })
 
 watch(conversationId, async () => {
   if (!global.isLogin) return
+  messageStore.setCurrentConversationId(conversationId.value)
   messages.value = []
   currentPage.value = 1
   hasMoreMessages.value = true

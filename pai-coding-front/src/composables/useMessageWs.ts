@@ -2,6 +2,7 @@ import Stomp from 'stompjs'
 import { useMessageStore } from '@/stores/message'
 import { WS_URL } from '@/http/URL'
 import { getCookie } from '@/util/utils'
+import { markConversationRead } from '@/http/MessageRequests'
 import type { WsMsgPush, WsNewMessagePayload } from '@/http/ResponseTypes/MsgTypes'
 
 /**
@@ -63,17 +64,38 @@ export function connectMessageWs() {
                 fromUserId: payload.fromUserId
               })
               const store = useMessageStore()
-              store.incrementUnread()
               const convId = Number(payload.conversationId)
               const messageId = Number(payload.messageId)
               const fromUserId = Number(payload.fromUserId)
 
-              store.handleNewMessage({
-                conversationId: convId,
-                content: payload.content,
-                fromUserId,
-                createTime: payload.createTime
-              })
+              // 判断是否是当前正在查看的会话
+              const isCurrentConversation = convId === store.currentConversationId
+
+              if (isCurrentConversation) {
+                // 当前会话：不增加未读数，直接标记已读
+                store.handleNewMessage({
+                  conversationId: convId,
+                  content: payload.content,
+                  fromUserId,
+                  createTime: payload.createTime
+                })
+                // 自动调用后端已读接口
+                markConversationRead(convId)
+                  .then(() => {
+                    store.resetUnread(convId)
+                  })
+                  .catch((e: unknown) => {
+                    console.error('[MessageWS] auto mark read failed:', e)
+                  })
+              } else {
+                store.incrementUnread()
+                store.handleNewMessage({
+                  conversationId: convId,
+                  content: payload.content,
+                  fromUserId,
+                  createTime: payload.createTime
+                })
+              }
 
               if (!convId || Number.isNaN(convId)) {
                 console.warn('[MessageWS] invalid conversationId in payload', payload)

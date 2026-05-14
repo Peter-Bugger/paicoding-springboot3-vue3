@@ -32,6 +32,11 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
       this.updatePageTitle()
     },
 
+    /** 设置当前打开的会话ID */
+    setCurrentConversationId(id: number) {
+      this.currentConversationId = id
+    },
+
     /** 递增未读数 */
     incrementUnread() {
       this.unreadTotal++
@@ -69,7 +74,10 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
         conv.lastMessage.content = payload.content
         conv.lastMessage.createTime = payload.createTime
         conv.lastMessage.fromUserId = payload.fromUserId
-        conv.unreadCount++
+        // 当前正在查看的会话不增加未读数
+        if (payload.conversationId !== this.currentConversationId) {
+          conv.unreadCount++
+        }
         const index = this.conversations.indexOf(conv)
         if (index > 0) {
           this.conversations.splice(index, 1)

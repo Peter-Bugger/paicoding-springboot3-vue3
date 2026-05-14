@@ -12,6 +12,7 @@ import com.github.paicoding.forum.api.model.vo.msg.StartConvRes;
 import com.github.paicoding.forum.api.model.vo.user.dto.BaseUserInfoDTO;
 import com.github.paicoding.forum.core.permission.Permission;
 import com.github.paicoding.forum.core.permission.UserRole;
+import com.github.paicoding.forum.core.util.TransactionUtil;
 import com.github.paicoding.forum.service.msg.helper.MsgPushHelper;
 import com.github.paicoding.forum.service.msg.repository.dao.ConversationDAO;
 import com.github.paicoding.forum.service.msg.repository.dao.ConversationMemberDAO;
@@ -100,14 +101,19 @@ public class MsgServiceImpl implements MsgService {
                 .setSql("unread_count = unread_count + 1")
                 .update();
 
-        // 6. WebSocket 推送
-        msgPushHelper.pushNewMessage(req.getToUserId(), msg);
+        // 6 & 7 在事务提交后执行（避免前端收到推送时读到旧数据）
+        final Long targetUserId = req.getToUserId();
+        final Long msgId = msg.getId();
+        TransactionUtil.registryAfterCommitOrImmediatelyRun(() -> {
+            // 6. WebSocket 推送
+            msgPushHelper.pushNewMessage(targetUserId, msg);
 
-        // 7. [已修复] 推送成功后标记消息为 DELIVERED
-        messageDAO.lambdaUpdate()
-                .eq(MessageDO::getId, msg.getId())
-                .set(MessageDO::getStatus, "DELIVERED")
-                .update();
+            // 7. 推送成功后标记消息为 DELIVERED
+            messageDAO.lambdaUpdate()
+                    .eq(MessageDO::getId, msgId)
+                    .set(MessageDO::getStatus, "DELIVERED")
+                    .update();
+        });
 
         return new SendMsgRes(conversationId, msg.getId());
     }
@@ -314,9 +320,9 @@ public class MsgServiceImpl implements MsgService {
      * 解析会话的对方用户信息
      */
     private BaseUserInfoDTO resolveTargetUser(Long userId, Long conversationId) {
+        // 查询会话所有成员（含已删除），确保任意一方删除后仍能解析对方用户信息
         List<ConversationMemberDO> allMembers = conversationMemberDAO.lambdaQuery()
                 .eq(ConversationMemberDO::getConversationId, conversationId)
-                .eq(ConversationMemberDO::getIsDeleted, 0)
                 .list();
 
         Long otherUserId = allMembers.stream()
@@ -387,11 +393,10 @@ public class MsgServiceImpl implements MsgService {
                 .map(ConversationMemberDO::getConversationId)
                 .collect(Collectors.toSet());
 
-        // 2. 查找共同 PRIVATE 会话
+        // 2. 查找共同 PRIVATE 会话（含目标用户已删除的成员记录，需复活）
         if (!convIdsOfA.isEmpty()) {
             List<ConversationMemberDO> membersOfB = conversationMemberDAO.lambdaQuery()
                     .eq(ConversationMemberDO::getUserId, targetUserId)
-                    .eq(ConversationMemberDO::getIsDeleted, 0)
                     .in(ConversationMemberDO::getConversationId, convIdsOfA)
                     .list();
 
@@ -399,6 +404,14 @@ public class MsgServiceImpl implements MsgService {
                 ConversationDO conv = conversationDAO.getById(mb.getConversationId());
                 if (conv != null && "PRIVATE".equals(conv.getConversationType())
                         && conv.getDeleted() == 0) {
+                    // 如果目标用户的成员记录已删除（当前用户未删除但对方已删除），复活目标用户
+                    if (mb.getIsDeleted() != null && mb.getIsDeleted() == 1) {
+                        conversationMemberDAO.lambdaUpdate()
+                                .eq(ConversationMemberDO::getId, mb.getId())
+                                .set(ConversationMemberDO::getIsDeleted, 0)
+                                .set(ConversationMemberDO::getUnreadCount, 0)
+                                .update();
+                    }
                     return conv.getId();
                 }
             }

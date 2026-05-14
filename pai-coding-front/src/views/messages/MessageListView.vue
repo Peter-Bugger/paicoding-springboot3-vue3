@@ -408,6 +408,7 @@ onMounted(async () => {
   await loadConversations()
   // 如果 URL 带有 conversationId，加载对应聊天
   if (selectedId.value) {
+    messageStore.setCurrentConversationId(selectedId.value)
     await loadMessages()
     await markRead()
   }
@@ -416,6 +417,7 @@ onMounted(async () => {
 // 选中会话变化时加载消息
 watch(selectedId, async (newId) => {
   if (!newId || !global.isLogin) return
+  messageStore.setCurrentConversationId(newId)
   messages.value = []
   chatPage.value = 1
   hasMoreMessages.value = true

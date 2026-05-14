@@ -1,9 +1,9 @@
 <template>
   <div class="conversation-item" @click="$emit('click')">
-    <el-avatar :size="48" :src="item.targetUser.photo" class="conversation-item-avatar" />
+    <el-avatar :size="48" :src="item.targetUser?.photo" class="conversation-item-avatar" />
     <div class="conversation-item-content">
       <div class="conversation-item-top">
-        <span class="conversation-item-name">{{ item.targetUser.userName }}</span>
+        <span class="conversation-item-name">{{ item.targetUser?.userName }}</span>
         <span class="conversation-item-time">{{ formatTime(item.lastMessage?.createTime) }}</span>
       </div>
       <div class="conversation-item-bottom">
