@@ -424,7 +424,10 @@ onMounted(async () => {
 
 // 选中会话变化时加载消息
 watch(selectedId, async (newId) => {
-  if (!newId || !global.isLogin) return
+  if (!newId || !global.isLogin) {
+    if (!newId) messageStore.setCurrentConversationId(0)
+    return
+  }
   messageStore.setCurrentConversationId(newId)
   messages.value = []
   chatPage.value = 1

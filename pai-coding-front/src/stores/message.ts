@@ -45,11 +45,15 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
       this.updatePageTitle()
     },
 
-    /** 重置未读数（进入会话页后） */
+    /** 重置未读数（进入会话页后，同步扣减全局未读总数） */
     resetUnread(conversationId: number) {
       const conv = this.conversations.find(c => c.conversationId === conversationId)
       if (conv) {
+        const was = conv.unreadCount
         conv.unreadCount = 0
+        if (was > 0) {
+          this.unreadTotal = Math.max(0, this.unreadTotal - was)
+        }
       }
       this.updatePageTitle()
     },

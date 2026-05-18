@@ -50,7 +50,7 @@ import MessageBubble from '@/components/message/MessageBubble.vue'
 import MessageInput from '@/components/message/MessageInput.vue'
 import { useGlobalStore } from '@/stores/global'
 import { useMessageStore } from '@/stores/message'
-import { onMounted, ref, provide, nextTick, watch, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, provide, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchMessages, sendMessage, markConversationRead, clearConversation } from '@/http/MessageRequests'
 import type { MessageItem, SimpleUserInfo } from '@/http/ResponseTypes/MsgTypes'
@@ -123,6 +123,10 @@ onMounted(async () => {
   messageStore.setCurrentConversationId(conversationId.value)
   await loadMessages()
   await markRead()
+})
+
+onBeforeUnmount(() => {
+  messageStore.setCurrentConversationId(0)
 })
 
 watch(conversationId, async () => {
