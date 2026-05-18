@@ -21,8 +21,10 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
      * WebSocket 推送的最新消息（用于 ConversationView 实时追加）
      */
     latestWsMessage: null as MessageItem | null,
-    /** 是否有新会话需要刷新列表（WebSocket 收到陌生会话消息时标记） */
-    _needsRefresh: false
+    /** 是否有新会话需要刷新列表（WebSocket 收到陌生会话消息或自己发送消息创建了新会话时标记） */
+    _needsRefresh: false,
+    /** 当前用户ID（由组件设置，供 handleOwnSentMessage 使用） */
+    currentUserId: 0
   }),
 
   actions: {
@@ -89,6 +91,28 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
       }
     },
 
+    /**
+     * 自己发送消息后更新会话列表
+     * - 已有会话：更新 lastMessage 并置顶，不增加未读数
+     * - 新创建的会话：标记需要刷新列表
+     */
+    handleOwnSentMessage(conversationId: number, content: string, createTime: string) {
+      const conv = this.conversations.find(c => c.conversationId === conversationId)
+      if (conv) {
+        conv.lastMessage.content = content
+        conv.lastMessage.createTime = createTime
+        conv.lastMessage.fromUserId = this.currentUserId
+        const index = this.conversations.indexOf(conv)
+        if (index > 0) {
+          this.conversations.splice(index, 1)
+          this.conversations.unshift(conv)
+        }
+      } else {
+        // 新创建的会话不在列表中，触发刷新
+        this._needsRefresh = true
+      }
+    },
+
     /** 获取并清除刷新标记 */
     consumeRefreshFlag(): boolean {
       const flag = this._needsRefresh
@@ -115,6 +139,11 @@ export const useMessageStore = defineStore(MESSAGE_STORE, {
     removeConversation(id: number) {
       this.conversations = this.conversations.filter(c => c.conversationId !== id)
       this.updatePageTitle()
+    },
+
+    /** 设置当前用户ID */
+    setCurrentUserId(userId: number) {
+      this.currentUserId = userId
     },
 
     /** 更新页面标题未读徽标 */

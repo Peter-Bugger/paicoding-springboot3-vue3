@@ -311,14 +311,21 @@ async function handleSend(content: string) {
   sending.value = true
   try {
     const res = await sendMessage({ toUserId, content })
+    const newConversationId = res.data.result.conversationId
     const sentMsg = messages.value.find(m => m.messageId === tempMsg.messageId)
     if (sentMsg) {
       sentMsg.messageId = res.data.result.messageId
       sentMsg.status = 'SENT'
-      if (sentMsg.conversationId !== res.data.result.conversationId) {
-        sentMsg.conversationId = res.data.result.conversationId
+      if (sentMsg.conversationId !== newConversationId) {
+        sentMsg.conversationId = newConversationId
       }
     }
+    // 更新会话列表：将当前会话置顶并更新最后一条消息摘要
+    messageStore.handleOwnSentMessage(
+      newConversationId,
+      content,
+      tempMsg.createTime
+    )
   } catch (e) {
     console.error('Failed to send message:', e)
     messageTip('发送失败', 'error')
@@ -405,6 +412,7 @@ onMounted(async () => {
     loading.value = false
     return
   }
+  messageStore.setCurrentUserId(currentUserId.value)
   await loadConversations()
   // 如果 URL 带有 conversationId，加载对应聊天
   if (selectedId.value) {

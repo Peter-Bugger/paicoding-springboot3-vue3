@@ -119,6 +119,7 @@ onMounted(async () => {
     loginDialogClicked.value = true
     return
   }
+  messageStore.setCurrentUserId(currentUserId.value)
   messageStore.setCurrentConversationId(conversationId.value)
   await loadMessages()
   await markRead()
@@ -239,16 +240,23 @@ async function handleSend(content: string) {
   sending.value = true
   try {
     const res = await sendMessage({ toUserId, content })
+    const newConversationId = res.data.result.conversationId
     // 更新本地消息ID
     const sentMsg = messages.value.find(m => m.messageId === tempMsg.messageId)
     if (sentMsg) {
       sentMsg.messageId = res.data.result.messageId
       sentMsg.status = 'SENT'
       // [已修复] 仅当 conversationId 变化时更新（首次发送/路由变更时）
-      if (sentMsg.conversationId !== res.data.result.conversationId) {
-        sentMsg.conversationId = res.data.result.conversationId
+      if (sentMsg.conversationId !== newConversationId) {
+        sentMsg.conversationId = newConversationId
       }
     }
+    // 更新会话列表：将当前会话置顶并更新最后一条消息摘要
+    messageStore.handleOwnSentMessage(
+      newConversationId,
+      content,
+      tempMsg.createTime
+    )
   } catch (e) {
     console.error('Failed to send message:', e)
     messageTip('发送失败', 'error')

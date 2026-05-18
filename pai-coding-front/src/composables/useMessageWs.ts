@@ -10,12 +10,17 @@ import type { WsMsgPush, WsNewMessagePayload } from '@/http/ResponseTypes/MsgTyp
  * - 跨页面持久连接，不依赖组件生命周期
  * - 在 App.vue 登录后初始化
  * - 使用 Pinia store 同步连接状态
+ * - 断线自动重连（递增延迟）
  */
 
 let stompClient: Stomp.Client | null = null
 let _connected = false
 let _connecting = false
 let _disposed = false
+let _reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let _reconnectAttempts = 0
+const MAX_RECONNECT_ATTEMPTS = 10
+const RECONNECT_BASE_DELAY = 3000 // 基础重连延迟 3 秒
 
 /**
  * 建立 STOMP WebSocket 连接
@@ -23,7 +28,12 @@ let _disposed = false
  */
 export function connectMessageWs() {
   const session = getCookie('f-session')
-  if (_connected || _connecting || !session) return
+  if (_connected || _connecting || !session) {
+    if (!session) {
+      console.info('[MessageWS] connect skipped: no session cookie')
+    }
+    return
+  }
 
   // disconnectMessageWs() 会标记 disposed；重新连接时需要复位
   _disposed = false
@@ -33,6 +43,9 @@ export function connectMessageWs() {
     console.info('[MessageWS] connecting', { session, _connected, _connecting, _disposed })
     const socket = new WebSocket(`${WS_URL}/msg/${session}`)
     const client = Stomp.over(socket)
+
+    // 禁用 STOMP 心跳调试日志，避免控制台刷屏
+    client.debug = () => {}
 
     client.connect(
       {},
@@ -47,6 +60,7 @@ export function connectMessageWs() {
         console.info('[MessageWS] connected')
         _connected = true
         _connecting = false
+        _reconnectAttempts = 0
         stompClient = client
 
         const store = useMessageStore()
@@ -156,26 +170,55 @@ export function connectMessageWs() {
           const store = useMessageStore()
           store.setWsConnected(false)
         } catch (_) { /* ignore */ }
+        // 连接失败：尝试重连
+        scheduleReconnect()
       }
     )
 
     socket.onclose = (event: CloseEvent) => {
       console.info('[MessageWS] socket closed', { code: event.code, reason: event.reason, _disposed })
+      _connected = false
+      _connecting = false
+      stompClient = null
+      try {
+        const store = useMessageStore()
+        store.setWsConnected(false)
+      } catch (_) { /* ignore */ }
+
+      // 非主动断开时尝试重连
       if (!_disposed) {
-        _connected = false
-        _connecting = false
-        stompClient = null
-        try {
-          const store = useMessageStore()
-          store.setWsConnected(false)
-        } catch (_) { /* ignore */ }
+        scheduleReconnect()
       }
     }
   } catch (e) {
     console.error('[MessageWS] Failed to create connection:', e)
     _connected = false
     _connecting = false
+    // 创建连接失败：尝试重连
+    scheduleReconnect()
   }
+}
+
+/**
+ * 排期重连（递增延迟）
+ */
+function scheduleReconnect() {
+  if (_disposed || _reconnectTimer) return
+
+  if (_reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.warn('[MessageWS] max reconnect attempts reached, giving up')
+    return
+  }
+
+  _reconnectAttempts++
+  const delay = RECONNECT_BASE_DELAY * Math.min(_reconnectAttempts, 5)
+  console.info(`[MessageWS] scheduling reconnect attempt ${_reconnectAttempts} in ${delay}ms`)
+
+  _reconnectTimer = setTimeout(() => {
+    _reconnectTimer = null
+    console.info('[MessageWS] attempting reconnect')
+    connectMessageWs()
+  }, delay)
 }
 
 /**
@@ -184,6 +227,14 @@ export function connectMessageWs() {
 export function disconnectMessageWs() {
   console.info('[MessageWS] disconnect requested')
   _disposed = true
+
+  // 清除重连定时器
+  if (_reconnectTimer) {
+    clearTimeout(_reconnectTimer)
+    _reconnectTimer = null
+  }
+  _reconnectAttempts = 0
+
   if (stompClient) {
     try {
       stompClient.disconnect(() => {
