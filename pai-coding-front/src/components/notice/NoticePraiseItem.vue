@@ -17,7 +17,7 @@
       <div class="notification-content">
         <div class="profile">
           <a
-            :href="'/user/home?userId=' + msg.operateUserId"
+            :href="'/user/' + msg.operateUserId"
             class=""
             target="_blank"
           >
