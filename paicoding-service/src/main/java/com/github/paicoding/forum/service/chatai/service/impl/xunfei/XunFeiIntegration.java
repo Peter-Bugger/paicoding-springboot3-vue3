@@ -1,271 +1,301 @@
 package com.github.paicoding.forum.service.chatai.service.impl.xunfei;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
+import com.github.paicoding.forum.api.model.enums.ChatAnswerTypeEnum;
+import com.github.paicoding.forum.api.model.vo.chat.ChatItemVo;
 import com.github.paicoding.forum.core.util.JsonUtil;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
+import okhttp3.*;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Base64;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 主体来自讯飞官方java sdk
- *
- * <a href="https://www.xfyun.cn/doc/spark/Web.html#_1-%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E"/>
+ * 讯飞星火大模型 OpenAI 兼容接口集成
+ * <p>
+ * 使用 OpenAI 兼容的 HTTP REST API 替代原有的 WebSocket 私有协议，
+ * 便于后续接入更多 OpenAI 兼容的 AI 提供商。
  *
  * @author XuYifei
  * @date 2024-07-12
  */
 @Slf4j
-@Setter
 @Component
 public class XunFeiIntegration {
 
     @Autowired
     private XunFeiConfig xunFeiConfig;
 
-    @Getter
     private OkHttpClient okHttpClient;
 
-    @PostConstruct
-    public void init() {
-        okHttpClient = new OkHttpClient.Builder().build();
+    private OkHttpClient getOkHttpClient() {
+        if (okHttpClient == null) {
+            synchronized (this) {
+                if (okHttpClient == null) {
+                    okHttpClient = new OkHttpClient.Builder()
+                            .connectTimeout(xunFeiConfig.getTimeOut(), TimeUnit.SECONDS)
+                            .readTimeout(xunFeiConfig.getTimeOut(), TimeUnit.SECONDS)
+                            .writeTimeout(xunFeiConfig.getTimeOut(), TimeUnit.SECONDS)
+                            .build();
+                }
+            }
+        }
+        return okHttpClient;
     }
 
-    public String buildXunFeiUrl() {
+    /**
+     * 同步提问，直接返回 AI 回答
+     *
+     * @param userId 用户ID
+     * @param chat   聊天项
+     * @return true 表示成功，false 表示失败
+     */
+    public boolean directReturn(Long userId, ChatItemVo chat) {
         try {
-            String authUrl = getAuthorizationUrl(xunFeiConfig.hostUrl, xunFeiConfig.apiKey, xunFeiConfig.apiSecret);
-            String url = authUrl.replace("https://", "wss://").replace("http://", "ws://");
-            return url;
+            OpenAiCompletionRequest request = buildRequest(chat.getQuestion(), false);
+            Request httpRequest = buildHttpRequest(request);
+
+            try (Response response = getOkHttpClient().newCall(httpRequest).execute()) {
+                if (!response.isSuccessful()) {
+                    String errorBody = response.body() != null ? response.body().string() : "";
+                    log.warn("讯飞API返回错误, HTTP code={}, body={}", response.code(), errorBody);
+                    chat.initAnswer("讯飞AI返回错误: HTTP " + response.code());
+                    return false;
+                }
+                String bodyStr = response.body().string();
+                OpenAiCompletionResponse result = JsonUtil.toObj(bodyStr, OpenAiCompletionResponse.class);
+                if (result.getChoices() != null && !result.getChoices().isEmpty()
+                        && result.getChoices().get(0).getMessage() != null) {
+                    String content = result.getChoices().get(0).getMessage().getContent();
+                    chat.initAnswer(content, ChatAnswerTypeEnum.TEXT);
+                    return true;
+                }
+                chat.initAnswer("讯飞AI返回为空");
+                return false;
+            }
         } catch (Exception e) {
-            log.warn("讯飞url创建失败", e);
-            return null;
+            log.warn("讯飞同步调用失败: {}", e.getMessage(), e);
+            chat.initAnswer("讯飞AI连接失败: " + e.getMessage());
+            return false;
         }
     }
 
     /**
-     * 构建授权url
+     * 流式提问，通过 SSE 逐块返回 AI 回答
      *
-     * @param hostUrl
-     * @param apikey
-     * @param apisecret
-     * @return
-     * @throws Exception
+     * @param userId   用户ID
+     * @param chat     聊天项
+     * @param callback 流式回调接口
      */
-    public String getAuthorizationUrl(String hostUrl, String apikey, String apisecret) throws Exception {
-        //获取host
-        URL url = new URL(hostUrl);
-        //获取鉴权时间 date
-        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        format.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String date = format.format(new Date());
-        //获取signature_origin字段
-        String builder = "host: " + url.getHost() + "\n" +
-                "date: " + date + "\n" +
-                "GET " + url.getPath() + " HTTP/1.1";
-        //获得signatue
-        Charset charset = StandardCharsets.UTF_8;
-        Mac mac = Mac.getInstance("hmacsha256");
-        SecretKeySpec sp = new SecretKeySpec(apisecret.getBytes(charset), "hmacsha256");
-        mac.init(sp);
-        String signature = Base64.getEncoder().encodeToString(mac.doFinal(builder.getBytes(charset)));
-        //获得 authorization_origin
-        String authorizationOrigin = String.format("api_key=\"%s\",algorithm=\"%s\",headers=\"%s\",signature=\"%s\"", apikey, "hmac-sha256", "host date request-line", signature);
-        //获得authorization
-        String authorization = Base64.getEncoder().encodeToString(authorizationOrigin.getBytes(charset));
-        //获取httpurl
-        HttpUrl httpUrl = HttpUrl.parse("https://" + url.getHost() + url.getPath()).newBuilder().
-                addQueryParameter("authorization", authorization).
-                addQueryParameter("date", date).
-                addQueryParameter("host", url.getHost()).
-                build();
-        return httpUrl.toString();
+    public void streamReturn(Long userId, ChatItemVo chat, StreamCallback callback) {
+        try {
+            OpenAiCompletionRequest request = buildRequest(chat.getQuestion(), true);
+            Request httpRequest = buildHttpRequest(request);
+
+            getOkHttpClient().newCall(httpRequest).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    log.warn("讯飞流式调用连接失败: {}", e.getMessage(), e);
+                    callback.onError(e, null);
+                }
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                    ResponseBody responseBody = response.body();
+                    if (!response.isSuccessful() || responseBody == null) {
+                        String errorMsg = "HTTP " + response.code();
+                        if (responseBody != null) {
+                            errorMsg += " " + responseBody.string();
+                        }
+                        callback.onError(new IOException(errorMsg), errorMsg);
+                        return;
+                    }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(responseBody.byteStream(), StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            if (line.startsWith("data: ")) {
+                                String data = line.substring(6);
+                                if ("[DONE]".equals(data.trim())) {
+                                    callback.onComplete();
+                                    return;
+                                }
+                                try {
+                                    OpenAiCompletionResponse chunk =
+                                            JsonUtil.toObj(data, OpenAiCompletionResponse.class);
+                                    if (chunk.hasError()) {
+                                        // 检测到 API 返回的错误响应
+                                        String errorInfo = chunk.getErrorMessage();
+                                        log.warn("讯飞SSE返回错误: {}", errorInfo);
+                                        callback.onError(new IOException(errorInfo), errorInfo);
+                                        return;
+                                    }
+                                    if (chunk.getChoices() != null && !chunk.getChoices().isEmpty()
+                                            && chunk.getChoices().get(0).getDelta() != null) {
+                                        String content = chunk.getChoices().get(0).getDelta().getContent();
+                                        if (StringUtils.isNotBlank(content)) {
+                                            callback.onMessage(content);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("解析SSE数据块失败: {}", data, e);
+                                }
+                            }
+                        }
+                        // 正常读完但没有收到 [DONE]
+                        callback.onComplete();
+                    } catch (Exception e) {
+                        callback.onError(e, null);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("讯飞流式调用失败: {}", e.getMessage(), e);
+            callback.onError(e, null);
+        }
     }
 
-    public String buildSendMsg(String uid, String question) {
-        JsonObject frame = new JsonObject();
-        JsonObject header = new JsonObject();
-        JsonObject chat = new JsonObject();
-        JsonObject parameter = new JsonObject();
-        JsonObject payload = new JsonObject();
-        JsonObject message = new JsonObject();
-        JsonObject text = new JsonObject();
-        JsonArray ja = new JsonArray();
-
-        //填充header
-        header.addProperty("app_id", xunFeiConfig.appId);
-        header.addProperty("uid", uid);
-        //填充parameter
-        chat.addProperty("domain", xunFeiConfig.domain);
-        chat.addProperty("random_threshold", 0);
-        chat.addProperty("max_tokens", 1024);
-        chat.addProperty("auditing", "default");
-        parameter.add("chat", chat);
-        //填充payload
-        text.addProperty("role", "user");
-        text.addProperty("content", question);
-        ja.add(text);
-        message.add("text", ja);
-        payload.add("message", message);
-        frame.add("header", header);
-        frame.add("parameter", parameter);
-        frame.add("payload", payload);
-        return frame.toString();
+    /**
+     * 构建 OpenAI 兼容的请求体
+     */
+    private OpenAiCompletionRequest buildRequest(String question, boolean stream) {
+        OpenAiCompletionRequest request = new OpenAiCompletionRequest();
+        request.setModel(xunFeiConfig.getModel());
+        request.setMessages(List.of(
+                new OpenAiCompletionRequest.OpenAiMessage("user", question)
+        ));
+        request.setStream(stream);
+        request.setMax_tokens(xunFeiConfig.getMaxToken());
+        return request;
     }
 
-    public ResponseData parse2response(String text) {
-        return JsonUtil.toObj(text, ResponseData.class);
+    /**
+     * 构建 HTTP 请求
+     */
+    private Request buildHttpRequest(OpenAiCompletionRequest body) {
+        RequestBody requestBody = RequestBody.create(
+                JsonUtil.toStr(body),
+                MediaType.parse("application/json; charset=utf-8")
+        );
+        return new Request.Builder()
+                .url(xunFeiConfig.getApiHost())
+                .header("Authorization", "Bearer " + xunFeiConfig.getApiKey())
+                .header("Content-Type", "application/json")
+                .post(requestBody)
+                .build();
     }
 
+    // ==================== 配置类 ====================
 
     @Component
     @ConfigurationProperties(prefix = "xunfei")
     @Data
     public static class XunFeiConfig {
-        public String hostUrl = "http://spark-api.xf-yun.com/v1.1/chat";
-        public String appId = "";
-        public String apiKey = "";
-        public String apiSecret = "";
-        // 指定访问的领域,general指向V1.5版本 generalv2指向V2版本。注意：不同的取值对应的url也不一样！
-        public String domain = "general";
+        /**
+         * OpenAI 兼容的 API 地址
+         */
+        private String apiHost = "https://spark-api-open.xf-yun.com/v1/chat/completions";
+        /**
+         * API Key，用作 Bearer Token
+         */
+        private String apiKey = "";
+        /**
+         * 模型名称
+         */
+        private String model = "general";
+        /**
+         * 最大返回 token 数
+         */
+        private int maxToken = 4096;
+        /**
+         * 超时时间（秒）
+         */
+        private int timeOut = 300;
+        /**
+         * 是否使用代理
+         */
+        private boolean proxy = false;
+    }
+
+    // ==================== OpenAI 兼容 DTO ====================
+
+    @Data
+    public static class OpenAiCompletionRequest {
+        private String model;
+        private List<OpenAiMessage> messages;
+        private boolean stream;
+        private Integer max_tokens;
+
+        @Data
+        @AllArgsConstructor
+        public static class OpenAiMessage {
+            private String role;
+            private String content;
+        }
     }
 
     @Data
-    public static class ResponseData {
-        private Header header;
-        private Payload payload;
-
-        public boolean successReturn() {
-            return header != null && header.code == 0;
-        }
-
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class OpenAiCompletionResponse {
+        private List<OpenAiChoice> choices;
         /**
-         * 首次返回结果
-         *
-         * @return
+         * 错误码，0 表示正常，非 0 表示出错
          */
-        public boolean firstResonse() {
-            return header != null && "0".equalsIgnoreCase(header.status);
-        }
-
+        private Integer code;
         /**
-         * 判断是否是最后一次返回的结果
-         *
-         * @return
-         */
-        public boolean endResponse() {
-            return header != null && "2".equalsIgnoreCase(header.status);
-        }
-    }
-
-    @Data
-    public static class Header {
-        /**
-         * 错误码，0表示正常，非0表示出错；详细释义可在接口说明文档最后的错误码说明了解
-         */
-        private int code;
-        /**
-         * 会话是否成功的描述信息
+         * 错误信息
          */
         private String message;
         /**
-         * 会话的唯一id，用于讯飞技术人员查询服务端会话日志使用,出现调用错误时建议留存该字段
+         * 会话 ID
          */
         private String sid;
-        /**
-         * 会话状态，取值为[0,1,2]；0代表首次结果；1代表中间结果；2代表最后一个结果
-         */
-        private String status;
+
+        public boolean hasError() {
+            return code != null && code != 0;
+        }
+
+        public String getErrorMessage() {
+            return "code=" + code + ", message=" + message + ", sid=" + sid;
+        }
+
+        @Data
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class OpenAiChoice {
+            private OpenAiResponseMessage message;
+            private OpenAiResponseDelta delta;
+        }
+
+        @Data
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class OpenAiResponseMessage {
+            private String role;
+            private String content;
+        }
+
+        @Data
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class OpenAiResponseDelta {
+            private String content;
+        }
     }
 
-    @Data
-    public static class Payload {
-        private Choices choices;
-        private Usage usage;
-    }
+    // ==================== 流式回调接口 ====================
 
-    @Data
-    public static class Choices {
-        /**
-         * 文本响应状态，取值为[0,1,2]; 0代表首个文本结果；1代表中间文本结果；2代表最后一个文本结果
-         */
-        private int status;
-        /**
-         * 返回的数据序号，取值为[0,9999999]
-         */
-        private int seq;
-
-        private List<ChoicesText> text;
-    }
-
-    @Data
-    public static class ChoicesText {
-        /**
-         * 结果序号，取值为[0,10]; 当前为保留字段，开发者可忽略
-         */
-        private int index;
-        /**
-         * 角色标识，固定为assistant，标识角色为AI
-         */
-        private String role;
-        /**
-         * AI的回答内容
-         */
-        private String content;
-    }
-
-    @Data
-    public static class Usage {
-        private UsageText text;
-    }
-
-    @Data
-    public static class UsageText {
-        /**
-         * 保留字段，可忽略
-         */
-        @JsonAlias("question_tokens")
-        private int questionTokens;
-        /**
-         * 包含历史问题的总tokens大小
-         */
-        @JsonAlias("prompt_tokens")
-        private int promptTokens;
-        /**
-         * 回答的tokens大小
-         */
-        @JsonAlias("completion_tokens")
-        private int completionTokens;
-
-        /**
-         * TODO: 官网api改了，多了这么个字段，还没看是什么含义
-         */
-        @JsonAlias("search_prompt_tokens")
-        private int searchPromptTokens;
-
-        /**
-         * prompt_tokens和completion_tokens的和，也是本次交互计费的tokens大小
-         */
-        @JsonAlias("total_tokens")
-        private int totalTokens;
+    public interface StreamCallback {
+        void onMessage(String message);
+        void onComplete();
+        void onError(Throwable throwable, String response);
     }
 }

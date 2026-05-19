@@ -102,7 +102,8 @@ import {
   fetchMessages,
   sendMessage,
   markConversationRead,
-  clearConversation
+  clearConversation,
+  fetchUnreadCount
 } from '@/http/MessageRequests'
 import type { MessageItem, SimpleUserInfo } from '@/http/ResponseTypes/MsgTypes'
 import { ElMessageBox } from 'element-plus'
@@ -138,6 +139,18 @@ const loadingMore = ref(false)
 const hasMore = ref(true)
 const currentPage = ref(1)
 
+/**
+ * 从后端同步未读总数，消除客户端增量计数与后端权威数据之间的漂移
+ */
+async function syncUnreadFromBackend() {
+  try {
+    const res = await fetchUnreadCount()
+    messageStore.setUnreadTotal(res.data.result.totalUnread)
+  } catch (e) {
+    console.error('[MessageListView] Failed to sync unread count:', e)
+  }
+}
+
 async function loadConversations() {
   loading.value = true
   try {
@@ -146,6 +159,8 @@ async function loadConversations() {
     messageStore.setConversations(data.list || [])
     hasMore.value = data.hasMore || false
     currentPage.value = 1
+    // 从后端同步权威未读总数，消除客户端增量计数的漂移
+    await syncUnreadFromBackend()
   } catch (e) {
     console.error('Failed to load conversations:', e)
     messageTip('加载失败', 'error')
@@ -175,6 +190,13 @@ async function loadMore() {
 function selectConversation(conversationId: number) {
   router.push(`/messages/${conversationId}`)
 }
+
+// ========== 会话切换时的已读标记状态保护 ==========
+// 标记正在执行的 markRead 数量（支持并发），防止 _needsRefresh 触发的
+// loadConversations() 在已读标记尚未完成时覆盖掉刚清零的 unreadCount
+const markReadActiveCount = ref(0)
+// 在 markRead 执行期间被跳过的刷新请求，待所有 markRead 完成后执行
+let pendingRefresh: (() => Promise<void>) | null = null
 
 // ========== 聊天面板状态 ==========
 const messagesRef = ref<HTMLElement | null>(null)
@@ -225,11 +247,25 @@ const targetUser = computed<SimpleUserInfo>(() => {
 
 // ========== 聊天面板方法 ==========
 
-async function loadMessages() {
-  if (!selectedId.value) return
+/** 取消上一次进行中的消息加载请求，防止快速切换时旧数据覆盖新数据 */
+let abortLoadMessages: AbortController | null = null
+
+/**
+ * 加载指定会话的消息，接受显式 convId 以避免快速切换时
+ * selectedId 已被后续导航覆盖导致数据错乱
+ */
+async function loadMessagesForId(convId: number) {
+  if (!convId) return
+  // 取消上一次进行中的请求
+  if (abortLoadMessages) {
+    abortLoadMessages.abort()
+  }
+  abortLoadMessages = new AbortController()
+  const signal = abortLoadMessages.signal
+
   loadingMessages.value = true
   try {
-    const res = await fetchMessages(selectedId.value, 1, 20)
+    const res = await fetchMessages(convId, 1, 20, signal)
     const data = res.data.result
     messages.value = data.list || []
     hasMoreMessages.value = data.hasMore || false
@@ -243,10 +279,14 @@ async function loadMessages() {
       }
     }
     await scrollToBottom()
-  } catch (e) {
+  } catch (e: unknown) {
+    if (e instanceof DOMException && e.name === 'AbortError') return
     console.error('Failed to load messages:', e)
     messageTip('加载消息失败', 'error')
   } finally {
+    if (abortLoadMessages?.signal === signal) {
+      abortLoadMessages = null
+    }
     loadingMessages.value = false
   }
 }
@@ -269,13 +309,26 @@ async function loadOlderMessages() {
   }
 }
 
-async function markRead() {
-  if (!selectedId.value) return
+/**
+ * 标记指定会话为已读，接受显式 convId 以避免快速切换时
+ * selectedId 已被后续导航覆盖导致误操作
+ */
+async function markReadForId(convId: number) {
+  if (!convId) return
+  markReadActiveCount.value++
   try {
-    await markConversationRead(selectedId.value)
-    messageStore.resetUnread(selectedId.value)
+    await markConversationRead(convId)
+    messageStore.resetUnread(convId)
   } catch (e) {
     console.error('Failed to mark as read:', e)
+  } finally {
+    markReadActiveCount.value--
+    // 所有并发的 markRead 都完成后，执行被跳过的刷新请求
+    if (markReadActiveCount.value === 0 && pendingRefresh) {
+      const refresh = pendingRefresh
+      pendingRefresh = null
+      refresh()
+    }
   }
 }
 
@@ -397,11 +450,16 @@ watch(() => messageStore.latestWsMessage, (msg) => {
 })
 
 // 监听 WebSocket 触发的新会话刷新标记
+// 如果 markRead 正在执行，则暂缓刷新，避免覆盖刚清零的 unreadCount
 watch(() => messageStore._needsRefresh, (needs) => {
-  if (needs) {
-    messageStore.consumeRefreshFlag()
-    loadConversations()
+  if (!needs) return
+  messageStore.consumeRefreshFlag()
+  if (markReadActiveCount.value > 0) {
+    // 暂缓刷新，待 markRead 完成后执行
+    pendingRefresh = () => loadConversations()
+    return
   }
+  loadConversations()
 })
 
 // ========== 生命周期 ==========
@@ -416,25 +474,28 @@ onMounted(async () => {
   await loadConversations()
   // 如果 URL 带有 conversationId，加载对应聊天
   if (selectedId.value) {
-    messageStore.setCurrentConversationId(selectedId.value)
-    await loadMessages()
-    await markRead()
+    const convId = selectedId.value
+    messageStore.setCurrentConversationId(convId)
+    await loadMessagesForId(convId)
+    await markReadForId(convId)
   }
 })
 
 // 选中会话变化时加载消息
+// 捕获会话ID避免快速切换时 markRead 落到了错误的会话上
 watch(selectedId, async (newId) => {
   if (!newId || !global.isLogin) {
     if (!newId) messageStore.setCurrentConversationId(0)
     return
   }
-  messageStore.setCurrentConversationId(newId)
+  const capturedId = newId
+  messageStore.setCurrentConversationId(capturedId)
   messages.value = []
   chatPage.value = 1
   hasMoreMessages.value = true
   loadingMessages.value = true
-  await loadMessages()
-  await markRead()
+  await loadMessagesForId(capturedId)
+  await markReadForId(capturedId)
 })
 
 // 登录弹窗

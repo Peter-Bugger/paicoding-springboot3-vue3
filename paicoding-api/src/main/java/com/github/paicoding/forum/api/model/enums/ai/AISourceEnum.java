@@ -23,12 +23,7 @@ public enum AISourceEnum {
     /**
      * 讯飞
      */
-    XUN_FEI_AI(3,"讯飞") {
-        @Override
-        public boolean syncSupport() {
-            return false;
-        }
-    },
+    XUN_FEI_AI(3,"讯飞"),
     ;
 
     private String name;

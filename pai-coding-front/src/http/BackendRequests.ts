@@ -15,13 +15,14 @@ interface Data {
 }
 
 
-export function doGet<CommonResponse>(url: string, params: Params, type?: 'json'|'text'): Promise<AxiosResponse<CommonResponse>> {
+export function doGet<CommonResponse>(url: string, params: Params, type?: 'json'|'text', signal?: AbortSignal): Promise<AxiosResponse<CommonResponse>> {
   const responseType = type? type : 'json';
   return axios({
     method: 'get',
     url: url,
     params: params,
     responseType: responseType,
+    signal: signal,
     headers: {
       'Content-Type': 'application/json',
     },

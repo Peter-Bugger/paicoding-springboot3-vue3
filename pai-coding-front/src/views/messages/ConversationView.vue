@@ -52,7 +52,7 @@ import { useGlobalStore } from '@/stores/global'
 import { useMessageStore } from '@/stores/message'
 import { onMounted, onBeforeUnmount, ref, provide, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchMessages, sendMessage, markConversationRead, clearConversation } from '@/http/MessageRequests'
+import { fetchMessages, sendMessage, markConversationRead, clearConversation, fetchUnreadCount } from '@/http/MessageRequests'
 import type { MessageItem, SimpleUserInfo } from '@/http/ResponseTypes/MsgTypes'
 import { ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
@@ -120,24 +120,26 @@ onMounted(async () => {
     return
   }
   messageStore.setCurrentUserId(currentUserId.value)
-  messageStore.setCurrentConversationId(conversationId.value)
-  await loadMessages()
-  await markRead()
+  const convId = conversationId.value
+  messageStore.setCurrentConversationId(convId)
+  await loadMessagesForId(convId)
+  await markReadForId(convId)
 })
 
 onBeforeUnmount(() => {
   messageStore.setCurrentConversationId(0)
 })
 
-watch(conversationId, async () => {
-  if (!global.isLogin) return
-  messageStore.setCurrentConversationId(conversationId.value)
+watch(conversationId, async (newId) => {
+  if (!newId || !global.isLogin) return
+  const capturedId = Number(newId)
+  messageStore.setCurrentConversationId(capturedId)
   messages.value = []
   currentPage.value = 1
   hasMoreMessages.value = true
   loadingMessages.value = true
-  await loadMessages()
-  await markRead()
+  await loadMessagesForId(capturedId)
+  await markReadForId(capturedId)
 })
 
 // 监听 WebSocket 推送的新消息，实时追加到当前会话
@@ -159,10 +161,10 @@ watch(() => messageStore.latestWsMessage, (msg) => {
   if (autoScroll.value) scrollToBottom()
 })
 
-async function loadMessages() {
+async function loadMessagesForId(convId: number) {
   loadingMessages.value = true
   try {
-    const res = await fetchMessages(conversationId.value, 1, 20)
+    const res = await fetchMessages(convId, 1, 20)
     const data = res.data.result
     messages.value = data.list || []
     hasMoreMessages.value = data.hasMore || false
@@ -203,10 +205,10 @@ async function loadOlderMessages() {
   }
 }
 
-async function markRead() {
+async function markReadForId(convId: number) {
   try {
-    await markConversationRead(conversationId.value)
-    messageStore.resetUnread(conversationId.value)
+    await markConversationRead(convId)
+    messageStore.resetUnread(convId)
   } catch (e) {
     console.error('Failed to mark as read:', e)
   }

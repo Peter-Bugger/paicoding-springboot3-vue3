@@ -44,9 +44,10 @@ export function fetchConversations(page: number = 1, pageSize: number = 20) {
 
 /**
  * 获取会话历史消息（分页）
+ * @param signal 用于取消请求的 AbortSignal，快速切换会话时中断旧请求
  */
-export function fetchMessages(conversationId: number, page: number = 1, pageSize: number = 20) {
-  return doGet<CommonResponse<MessagePageListVo>>(MSG_MESSAGES_URL + `/${conversationId}`, { page, pageSize })
+export function fetchMessages(conversationId: number, page: number = 1, pageSize: number = 20, signal?: AbortSignal) {
+  return doGet<CommonResponse<MessagePageListVo>>(MSG_MESSAGES_URL + `/${conversationId}`, { page, pageSize }, undefined, signal)
 }
 
 /**

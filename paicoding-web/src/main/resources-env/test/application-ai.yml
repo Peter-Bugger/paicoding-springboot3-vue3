@@ -32,9 +32,11 @@ chatgpt:
 
 
 
-# 讯飞AI
+# 讯飞AI - OpenAI 兼容接口配置
 xunfei:
-  hostUrl: http://spark-api.xf-yun.com/v1.1/chat
-  appId:
+  apiHost: https://spark-api-open.xf-yun.com/v1/chat/completions
   apiKey:
-  apiSecret:
+  model: "general"
+  maxToken: 4096
+  timeOut: 300
+  proxy: false
