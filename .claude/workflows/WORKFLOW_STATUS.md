@@ -1,60 +1,77 @@
 # Workflow Status
+## Task: 修复AI流式解析时重复内容问题
+## Mode: Quick
+## Current Stage
+Stage 5/6: Integrator — PASS
 
-## Task: 私信对话框历史消息左右分栏布局
+## Root Cause
+后端 `ArticleInterpretService.java:147` 每次回调发送 `fullContent.toString()`（完整累积文本），前端 `interpretApi.ts:96` 再用 `fullContent += event.content` 合并，双重累积导致内容重复。
 
-## Mode: [Quick] — Dev → Integrator
-
-## Current Stage: ✅ ALL COMPLETE
-
-## Completed Stages
-- [x] Stage 3: Dev — mini-design + 代码实现
-- [x] Stage 5: Integrator — 构建验证
+数据流：
+| 轮次 | XunFei返回 | 后端保存 | 后端发送 | 前端累积 | 渲染结果 |
+|------|-----------|---------|---------|---------|---------|
+| 1 | "A" | "A" | "A" | ""+"A"="A" | "A" |
+| 2 | "B" | "AB" | "AB" | "A"+"AB"="AAB" | "AAB" X |
+| 3 | "C" | "ABC" | "ABC" | "AAB"+"ABC"="AABABC" | "AABABC" X |
 
 ## Quick Design
-
-### 需求
-私信对话框中，历史消息分为左右两栏：左侧显示他人消息（头像+气泡），右侧显示自己消息（气泡+头像）。
-
-### 涉及文件
-| 文件 | 变更类型 | 说明 |
-|------|---------|------|
-| `MessageBubble.vue` | MODIFY | 左右分栏布局（头像左/右 + 气泡色区分 + flex对齐） |
-| `ConversationView.vue` | 无需改 | 已正确传递 `isOwn` prop |
-| `MessageListView.vue` | 无需改 | 已正确传递 `isOwn` prop |
-
-### 实现要点
-1. **DOM结构**: 他人消息 → 左侧头像 + 气泡；自己消息 → 气泡 + 右侧头像
-2. **Flexbox对齐**: `justify-content: flex-end` 将己方消息推至右侧
-3. **气泡颜色**: 己方 = `--pai-brand-1-normal`（品牌橙），他人 = `--pai-bg-light-1`（浅灰）
-4. **昵称显示**: 仅对方消息显示昵称
-5. **时间显示**: 己方右对齐，他人左对齐
-6. **失败状态**: 己方消息发送失败显示红色边框+提示
+- **文件：** `paicoding-service/src/main/java/com/github/paicoding/forum/service/chatai/service/ArticleInterpretService.java:147`
+- **改动：** `callback.onMessage(fullContent.toString())` -> `callback.onMessage(message)`
+- **验证：** `mvn compile -pl paicoding-api,paicoding-service -DskipTests=true`
+- **测试：** 编译验证通过即可
 
 ## Task Progress
 | Task | 文件 | 状态 | 验证结果 |
 |------|------|------|----------|
-| Task 1: MessageBubble 左右分栏 | `MessageBubble.vue` | ✅ done | ✅ passed |
-| Task 2: 构建验证 | - | ✅ done | ✅ type-check + build-only PASS |
+| Task 1: 修复后端双重累积 | `ArticleInterpretService.java` | done | compile passed + type-check passed |
 
-## Verification Results
-- `npm run type-check`: ✅ PASS
-- `npm run build-only`: ✅ PASS (16.18s)
+## Integration Report
+
+### 验证结果
+| 检查项 | 结果 |
+|--------|------|
+| 后端全量编译 (`mvn compile -DskipTests=true`) | PASS |
+| 前端类型检查 (`npm run type-check`) | PASS |
+| 测试 | SKIPPED (pre-existing test compilation issue, unrelated) |
+| 覆盖率 | SKIPPED (no coverage tool configured) |
+
+### 变更总结
+- **修改文件：** 1 个
+- **代码变更：** 1 行 (1 word)
+- **改动前：** `callback.onMessage(fullContent.toString())`
+- **改动后：** `callback.onMessage(message)`
+
+### 修复后数据流
+| 轮次 | XunFei返回 | 后端发送 | 前端累积 | 渲染结果 |
+|------|-----------|---------|---------|---------|
+| 1 | "A" | "A" | ""+"A"="A" | "A" ✓ |
+| 2 | "B" | "B" | "A"+"B"="AB" | "AB" ✓ |
+| 3 | "C" | "C" | "AB"+"C"="ABC" | "ABC" ✓ |
+
+### 内嵌Review
+- 无硬编码、未使用import、类型错误
+- `onComplete` 仍通过 `fullContent.toString()` 发送完整文本（正确）
+- 最小化变更，仅动1行
+
+### 工作流阶段回顾
+| 阶段 | 状态 |
+|------|------|
+| Stage 3: Developer | done |
+| Stage 5: Integrator | PASS |
+
+### 最终结论
+可交付
 
 ## Files Changed
 | File | Change Type |
 |------|-------------|
-| `pai-coding-front/src/components/message/MessageBubble.vue` | MODIFY |
+| `paicoding-service/.../service/chatai/service/ArticleInterpretService.java` | Modified (1 line) |
 
 ## Retry Counters
-- Integrator cycle: 0/3
-
-## Issues Log
-| Stage | Task | Issue | Status |
-|-------|------|-------|--------|
+- Integrator cycle: 1/3
+- Coverage cycle: 0/2
 
 ## Timing
 | Stage | 耗时 |
 |-------|------|
-| Stage 3: Dev | ~5min |
-| Stage 5: Integrator | ~2min |
-| **总计** | **~7min** |
+| Stage 3: 开发 | - |

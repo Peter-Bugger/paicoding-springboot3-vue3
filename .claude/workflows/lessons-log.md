@@ -47,4 +47,17 @@
 - 🎯 **建议推广到**: 所有包含 Spring Boot 后端的项目集成验证。
 
 ---
-*统计: 4条 | 已提炼: 0条 | 活跃: 4条 | 归档阈值: 30条*
+*统计: 7条 | 已提炼: 0条 | 活跃: 7条 | 归档阈值: 30条*
+
+### 2026-05-27 | 新发现 | [stack: SpringBoot3]
+- 💡 **新认知**: Spring Boot 3 + surefire 默认使用 JUnit 5（Jupiter）引擎。测试类若使用 JUnit 4 注解（`@org.junit.Test`、`@RunWith`、`@Before`），surefire 无法发现测试用例（Tests run: 0），除非添加 junit-vintage-engine 依赖。
+- 🔧 **流程改进点**: 在 Spring Boot 3 项目的新测试中应直接使用 JUnit 5 注解（`@org.junit.jupiter.api.Test`、`@ExtendWith`、`@BeforeEach`），避免集成时才发现测试不运行。
+- ✅ **做得好的**: 集成阶段通过排查 surefire 输出 + 检查编译后的 class 文件存在性，准确定位了根因是 JUnit 版本不匹配而非测试代码问题。
+
+### 2026-05-27 | 新发现 | [stack: Vue3]
+- 💡 **新认知**: Vue 3 模板中，`v-else-if` 指令不能跨越非 HTML 元素包装器（如 `<Transition>`）与前面的 `v-if` 配对。编译器报错 `v-else/v-else-if has no adjacent v-if or v-else-if`。
+- 🔧 **流程改进点**: 当需要在不同包装器中分别使用 v-if/v-else 时，改为在每个元素上使用完整的条件 v-if（如 `v-if="!isMobile && visible"`），而非依赖 v-else-if 链。
+
+### 2026-05-27 | 新发现 | [project]
+- 💡 **新认知**: 多模块 Maven 项目中，`mvn test -pl <module> -Dtest=<TestClass>` 需要加 `-am`（also-make）标志，才能让 reactor 构建顺序中包含依赖模块并编译其中的新增源文件。不加 `-am` 时，依赖模块的新 class 不会被重新编译，导致测试编译失败。
+- 🔧 **流程改进点**: 在多模块 Maven 项目中执行选择性测试时，始终使用 `-am` 标志。

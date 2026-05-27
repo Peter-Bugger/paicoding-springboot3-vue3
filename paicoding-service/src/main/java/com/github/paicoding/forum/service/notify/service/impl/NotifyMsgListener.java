@@ -4,6 +4,7 @@ import com.github.paicoding.forum.api.model.enums.NotifyStatEnum;
 import com.github.paicoding.forum.api.model.enums.NotifyTypeEnum;
 import com.github.paicoding.forum.api.model.vo.notify.NotifyMsgEvent;
 import com.github.paicoding.forum.core.util.SpringUtil;
+import com.github.paicoding.forum.service.answer.repository.entity.AnswerDO;
 import com.github.paicoding.forum.service.article.repository.entity.ArticleDO;
 import com.github.paicoding.forum.service.article.service.ArticleReadService;
 import com.github.paicoding.forum.service.comment.repository.entity.CommentDO;
@@ -69,6 +70,15 @@ public class NotifyMsgListener<T> implements ApplicationListener<NotifyMsgEvent<
             case REGISTER:
                 // 首次注册，插入一个欢迎的消息
                 saveRegisterSystemNotify((Long) msgEvent.getContent());
+                break;
+            case ANSWER:
+                saveAnswerNotify((NotifyMsgEvent<AnswerDO>) msgEvent);
+                break;
+            case VOTE_UP:
+                saveVoteUpNotify((NotifyMsgEvent<AnswerDO>) msgEvent);
+                break;
+            case ACCEPT:
+                saveAcceptNotify((NotifyMsgEvent<AnswerDO>) msgEvent);
                 break;
             default:
                 // todo 系统消息
@@ -214,6 +224,56 @@ public class NotifyMsgListener<T> implements ApplicationListener<NotifyMsgEvent<
             // 若之前已经有对应的通知，则不重复记录；因为用户的关注是一对一的，可以重复的关注、取消，但是最终我们只通知一次
             notifyMsgDao.save(msg);
         }
+    }
+
+    /**
+     * 回答通知（新回答）
+     */
+    private void saveAnswerNotify(NotifyMsgEvent<AnswerDO> event) {
+        AnswerDO answer = event.getContent();
+        ArticleDO article = articleReadService.queryBasicArticle(answer.getArticleId());
+        if (article.getUserId().equals(answer.getUserId())) {
+            return; // 不通知自己
+        }
+        NotifyMsgDO msg = new NotifyMsgDO()
+                .setRelatedId(answer.getArticleId())
+                .setNotifyUserId(article.getUserId())
+                .setOperateUserId(answer.getUserId())
+                .setType(event.getNotifyType().getType())
+                .setState(NotifyStatEnum.UNREAD.getStat())
+                .setMsg(answer.getContent());
+        notifyMsgDao.save(msg);
+    }
+
+    /**
+     * 赞同回答通知
+     */
+    private void saveVoteUpNotify(NotifyMsgEvent<AnswerDO> event) {
+        AnswerDO answer = event.getContent();
+        NotifyMsgDO msg = new NotifyMsgDO()
+                .setRelatedId(answer.getId())
+                .setNotifyUserId(answer.getUserId())
+                .setOperateUserId(answer.getUserId()) // 由调用方设置实际的投票者ID，这里暂留
+                .setType(event.getNotifyType().getType())
+                .setState(NotifyStatEnum.UNREAD.getStat())
+                .setMsg("赞同了你的回答");
+        notifyMsgDao.save(msg);
+    }
+
+    /**
+     * 采纳回答通知
+     */
+    private void saveAcceptNotify(NotifyMsgEvent<AnswerDO> event) {
+        AnswerDO answer = event.getContent();
+        ArticleDO article = articleReadService.queryBasicArticle(answer.getArticleId());
+        NotifyMsgDO msg = new NotifyMsgDO()
+                .setRelatedId(answer.getId())
+                .setNotifyUserId(answer.getUserId())
+                .setOperateUserId(article.getUserId())
+                .setType(event.getNotifyType().getType())
+                .setState(NotifyStatEnum.UNREAD.getStat())
+                .setMsg("采纳了你的回答");
+        notifyMsgDao.save(msg);
     }
 
 }

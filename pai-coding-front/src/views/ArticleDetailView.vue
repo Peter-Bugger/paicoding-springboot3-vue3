@@ -34,12 +34,14 @@
     <Footer></Footer>
   </div>
   <LoginDialog :clicked="clicked"></LoginDialog>
+  <!-- @PRD: US1 — 文章AI解读组件：选中文本发送AI解读请求 -->
+  <ArticleInterpreter :article-id="articleIdNum" />
 </template>
 
 <script setup lang="ts">
 import Footer from '@/components/layout/Footer.vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
-import { onMounted, provide, reactive, ref } from 'vue'
+import { computed, onMounted, provide, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
 import { doGet } from '@/http/BackendRequests'
@@ -55,6 +57,7 @@ import SideRecommendBar from '@/views/article-detail/SideRecommendBar.vue'
 import LoginDialog from '@/components/dialog/LoginDialog.vue'
 import { useGlobalStore } from '@/stores/global'
 import CommentList from '@/views/article-detail/CommentList.vue'
+import ArticleInterpreter from '@/components/ArticleInterpreter.vue'
 import { setTitle } from '@/util/utils'
 
 const progressPercent = ref(0)
@@ -72,6 +75,7 @@ const globalStore = useGlobalStore()
 const global = globalStore.global
 let articleVo = reactive<ArticleDetailResponse>({...defaultArticleDetailResponse})
 const articleId = route.params.articleId
+const articleIdNum = computed(() => Number(articleId))
 const scrollElement = document.documentElement
 const clicked = ref(false)
 

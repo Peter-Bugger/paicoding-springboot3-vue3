@@ -53,3 +53,37 @@ xunfei:
   maxToken: 4096
   timeOut: 300
   proxy: false
+
+# 文章 AI 解读功能配置（ai-interpret）
+# 支持多模型，自动降级切换
+ai-interpret:
+  enabled: true
+  max-daily-requests: 50
+  models:
+    - name: deepseek
+      display-name: "DeepSeek V3"
+      priority: 0
+      api-host: "https://api.deepseek.com/v1/chat/completions"
+      api-key: ${DEEPSEEK_API_KEY:sk-your-deepseek-key}
+      model-name: deepseek-chat
+      max-tokens: 4096
+      timeout-seconds: 30
+      enabled: true
+    - name: kimi
+      display-name: "月之暗面 Kimi"
+      priority: 1
+      api-host: "https://api.moonshot.cn/v1/chat/completions"
+      api-key: ${KIMI_API_KEY:sk-your-kimi-key}
+      model-name: moonshot-v1-8k
+      max-tokens: 4096
+      timeout-seconds: 30
+      enabled: true
+    - name: qwen
+      display-name: "通义千问 Turbo"
+      priority: 2
+      api-host: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+      api-key: ${QWEN_API_KEY:sk-your-qwen-key}
+      model-name: qwen-turbo
+      max-tokens: 4096
+      timeout-seconds: 30
+      enabled: true

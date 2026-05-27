@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+
+    <property name="now" value="now()" dbms="mysql"/>
+
+    <changeSet id="003_qa_answer" author="Mr.Bu">
+        <sql>
+            CREATE TABLE IF NOT EXISTS `answer` (
+                `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                `article_id` BIGINT NOT NULL COMMENT '问题ID(关联article表)',
+                `user_id` BIGINT NOT NULL COMMENT '回答用户ID',
+                `content` MEDIUMTEXT NOT NULL COMMENT '回答内容(Markdown)',
+                `vote_up_count` INT NOT NULL DEFAULT 0 COMMENT '点赞数',
+                `vote_down_count` INT NOT NULL DEFAULT 0 COMMENT '点踩数',
+                `accepted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否被采纳 0-未采纳 1-已采纳',
+                `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除 0-未删除 1-已删除',
+                `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                PRIMARY KEY (`id`),
+                INDEX `idx_article_id` (`article_id`),
+                INDEX `idx_user_id` (`user_id`),
+                INDEX `idx_article_accepted` (`article_id`, `accepted`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='问答回答表';
+        </sql>
+    </changeSet>
+
+    <changeSet id="003_qa_answer_vote" author="Mr.Bu">
+        <sql>
+            CREATE TABLE IF NOT EXISTS `answer_vote` (
+                `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                `answer_id` BIGINT NOT NULL COMMENT '回答ID',
+                `user_id` BIGINT NOT NULL COMMENT '投票用户ID',
+                `vote_type` TINYINT NOT NULL COMMENT '投票类型 1-赞同 2-反对',
+                `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_answer_user` (`answer_id`, `user_id`),
+                INDEX `idx_user_id` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回答投票记录表';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

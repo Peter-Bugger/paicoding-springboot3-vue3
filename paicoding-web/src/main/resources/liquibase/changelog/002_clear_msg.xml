@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+
+    <property name="now" value="now()" dbms="mysql"/>
+
+    <changeSet id="002_clear_msg" author="Mr.Bu">
+        <sql>
+            ALTER TABLE `conversation_member`
+            ADD COLUMN `cleared_at` DATETIME NULL COMMENT '清除时间(用户清除会话时记录)' AFTER `is_deleted`;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

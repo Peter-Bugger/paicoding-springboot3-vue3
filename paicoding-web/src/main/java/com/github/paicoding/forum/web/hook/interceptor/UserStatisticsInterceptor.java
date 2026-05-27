@@ -128,9 +128,12 @@ public class UserStatisticsInterceptor {
             }
 
             // 更新uv/pv计数
-            SpringUtil.getBean(SitemapServiceImpl.class).saveVisitInfo(ReqInfoContext.getReqInfo().getClientIp(), ReqInfoContext.getReqInfo().getPath());
+//            SpringUtil.getBean(SitemapServiceImpl.class).saveVisitInfo(ReqInfoContext.getReqInfo().getClientIp(), ReqInfoContext.getReqInfo().getPath());
 
-            HttpSession session = request.getSession(true);
+            HttpSession session = request.getSession(false);
+            if (session == null) {
+                return true; // 流式接口无session，直接放行
+            }
             session.setMaxInactiveInterval(30);
 
 

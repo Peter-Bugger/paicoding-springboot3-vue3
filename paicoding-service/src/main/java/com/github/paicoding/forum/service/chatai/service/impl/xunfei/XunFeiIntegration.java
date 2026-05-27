@@ -167,17 +167,116 @@ public class XunFeiIntegration {
     }
 
     /**
-     * 构建 OpenAI 兼容的请求体
+     * 构建 OpenAI 兼容的请求体（仅用户消息，用于聊天场景）
      */
     private OpenAiCompletionRequest buildRequest(String question, boolean stream) {
+        return buildRequest(null, question, stream);
+    }
+
+    /**
+     * 构建 OpenAI 兼容的请求体（支持系统提示词，用于文章解读等场景）
+     *
+     * @param systemPrompt 系统提示词（可为 null）
+     * @param question     用户消息
+     * @param stream       是否流式
+     */
+    private OpenAiCompletionRequest buildRequest(String systemPrompt, String question, boolean stream) {
         OpenAiCompletionRequest request = new OpenAiCompletionRequest();
         request.setModel(xunFeiConfig.getModel());
-        request.setMessages(List.of(
-                new OpenAiCompletionRequest.OpenAiMessage("user", question)
-        ));
+        if (StringUtils.isNotBlank(systemPrompt)) {
+            request.setMessages(List.of(
+                    new OpenAiCompletionRequest.OpenAiMessage("system", systemPrompt),
+                    new OpenAiCompletionRequest.OpenAiMessage("user", question)
+            ));
+        } else {
+            request.setMessages(List.of(
+                    new OpenAiCompletionRequest.OpenAiMessage("user", question)
+            ));
+        }
         request.setStream(stream);
         request.setMax_tokens(xunFeiConfig.getMaxToken());
         return request;
+    }
+
+    /**
+     * 流式调用（支持系统提示词），直接传入消息文本，用于文章解读等非聊天场景
+     *
+     * @param systemPrompt 系统提示词
+     * @param userMessage  用户消息
+     * @param callback     流式回调
+     */
+    public void streamReturn(String systemPrompt, String userMessage, StreamCallback callback) {
+        try {
+            OpenAiCompletionRequest request = buildRequest(systemPrompt, userMessage, true);
+            Request httpRequest = buildHttpRequest(request);
+
+            getOkHttpClient().newCall(httpRequest).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    log.warn("讯飞流式调用连接失败: {}", e.getMessage(), e);
+                    callback.onError(e, null);
+                }
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                    ResponseBody responseBody = response.body();
+                    if (!response.isSuccessful() || responseBody == null) {
+                        String errorMsg = "HTTP " + response.code();
+                        if (responseBody != null) {
+                            errorMsg += " " + responseBody.string();
+                        }
+                        callback.onError(new IOException(errorMsg), errorMsg);
+                        return;
+                    }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(responseBody.byteStream(), StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            if (line.startsWith("data: ")) {
+                                String data = line.substring(6);
+                                if ("[DONE]".equals(data.trim())) {
+                                    callback.onComplete();
+                                    return;
+                                }
+                                try {
+                                    OpenAiCompletionResponse chunk =
+                                            JsonUtil.toObj(data, OpenAiCompletionResponse.class);
+                                    if (chunk.hasError()) {
+                                        String errorInfo = chunk.getErrorMessage();
+                                        log.warn("讯飞SSE返回错误: {}", errorInfo);
+                                        callback.onError(new IOException(errorInfo), errorInfo);
+                                        return;
+                                    }
+                                    if (chunk.getChoices() != null && !chunk.getChoices().isEmpty()
+                                            && chunk.getChoices().get(0).getDelta() != null) {
+                                        String content = chunk.getChoices().get(0).getDelta().getContent();
+                                        if (StringUtils.isNotBlank(content)) {
+                                            callback.onMessage(content);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("解析SSE数据块失败: {}", data, e);
+                                }
+                            }
+                        }
+                        // 正常读完但没有收到 [DONE]
+                        callback.onComplete();
+                    } catch (Exception e) {
+                        callback.onError(e, null);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("讯飞流式调用失败: {}", e.getMessage(), e);
+            callback.onError(e, null);
+        }
+    }
+
+    /**
+     * 获取模型最大 Token 数（供外部判断上下文截断阈值）
+     */
+    public int getMaxToken() {
+        return xunFeiConfig.getMaxToken();
     }
 
     /**

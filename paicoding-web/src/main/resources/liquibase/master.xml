@@ -8,5 +8,6 @@
     <include file="liquibase/changelog/000_initial_schema.xml" relativeToChangelogFile="false"/>
     <include file="liquibase/changelog/001_private_msg.xml" relativeToChangelogFile="false"/>
     <include file="liquibase/changelog/002_clear_msg.xml" relativeToChangelogFile="false"/>
+    <include file="liquibase/changelog/003_qa_system.xml" relativeToChangelogFile="false"/>
 
 </databaseChangeLog>

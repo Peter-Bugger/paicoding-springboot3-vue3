@@ -27,6 +27,12 @@ public enum NotifyTypeEnum {
     REGISTER(6, "用户注册"),
     BIND(6, "绑定星球"),
     LOGIN(6, "用户登录"),
+
+    // Q&A 问答系统相关通知
+    ANSWER(7, "回答"),
+    VOTE_UP(8, "赞同回答"),
+    ACCEPT(9, "采纳回答"),
+    MENTION(10, "@提及"),
     ;
 
 

@@ -46,7 +46,13 @@
       "Bash(npm -s run build-only)",
       "Bash(npm -s run dev -- --host 0.0.0.0 --port 5173)",
       "Bash(python3)",
-      "Bash(npx vue-tsc *)"
+      "Bash(npx vue-tsc *)",
+      "WebSearch",
+      "Bash(dir:*)",
+      "Skill(multi-agent-dev)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
