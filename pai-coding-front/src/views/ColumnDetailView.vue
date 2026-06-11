@@ -15,6 +15,8 @@
           <div class="column-detail-content">
             <div class="column-detail-article">
               <ColumnArticleDetail :article-vo="vo"></ColumnArticleDetail>
+              <!-- @PRD: US1 — 文章AI解读组件：选中文本发送AI解读请求 -->
+              <ArticleInterpreter :article-id="articleIdNum" />
               <div id="commentDiv">
                 <CommentList :comments="vo.comments" :hot-comment="vo.hotComment" :article="vo.article"></CommentList>
               </div>
@@ -32,7 +34,7 @@
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import Footer from '@/components/layout/Footer.vue'
 import ColumnMenu from '@/views/column-detail/ColumnMenu.vue'
-import { onMounted, provide, reactive, ref } from 'vue'
+import { computed, onMounted, provide, reactive, ref } from 'vue'
 import { type ColumnArticlesResponseType, defaultColumnArticlesResponse } from '@/http/ResponseTypes/ColumnDetailType/ColumnArticlesResponseType'
 import { doGet } from '@/http/BackendRequests'
 import { COLUMN_DETAIL_URL } from '@/http/URL'
@@ -40,11 +42,13 @@ import { useRoute } from 'vue-router'
 import type { CommonResponse } from '@/http/ResponseTypes/CommonResponseType'
 import { useGlobalStore } from '@/stores/global'
 import ColumnArticleDetail from '@/components/column/ColumnArticleDetail.vue'
+import ArticleInterpreter from '@/components/ArticleInterpreter.vue'
 import CommentList from '@/views/article-detail/CommentList.vue'
 import LoginDialog from '@/components/dialog/LoginDialog.vue'
 
 const globalStore = useGlobalStore()
 const vo = reactive({...defaultColumnArticlesResponse})
+const articleIdNum = computed(() => Number(vo.article.articleId))
 
 const getArticleDetail = (response: ColumnArticlesResponseType) => {
   Object.assign(vo.comments, response.comments)
